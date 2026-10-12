@@ -72,8 +72,12 @@ seat — or see their secret. The client keeps the token per tab
 (`localStorage`, a "soft" claim that gets you back in after closing the tab but
 never kicks out another live tab).
 
-**Rounds resolve in pairs.** The first mover guesses, then the other player,
-and only then can the match end. Crack it in the same round and it is a draw.
+**The match ends the moment a code is cracked.** There is no reply turn and
+no draw: once one code is out, nothing is left to play for.
+
+**Table talk.** Players can send short messages (60 characters, cleaned by
+the server, last 30 kept, wiped when someone leaves). An incoming message is
+delivered by a critter in a speech bubble; the history is always in the menu.
 
 **The opening move alternates across a rivalry.** `firstMover` flips on every
 rematch. A rematch needs both players to ask for it.
@@ -143,6 +147,12 @@ allows: above the board and the header, below the board, and body-wide side
 gutters (phones narrower than 360px keep 12px gutters and skip the tour).
 In development, `?critter=walk|box|letters|swing|tour|dangle|trick|peek`
 summons one.
+
+**Languages.** Every string the player reads lives in `src/i18n.ts`, one
+object per language (English and French today). English is the source: its
+keys are the type, so a missing translation is a compile error. The language
+follows the device and can be changed in the menu. Adding one means adding
+one object there.
 
 ## Deploying
 

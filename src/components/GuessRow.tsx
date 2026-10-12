@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { CODE_LENGTH, describe, type Code, type Verdict } from "@shared/engine";
+import { CODE_LENGTH, type Code, type Verdict } from "@shared/engine";
+import { useLang, useT, verdictText } from "@/i18n";
 import { BarMarks } from "./BarMarks";
 
 interface Props {
@@ -13,8 +14,10 @@ interface Props {
 }
 
 export function GuessRow({ guess, verdict, ordinal, theirs, onLoad }: Props) {
+  const t = useT();
+  const lang = useLang();
   const won = verdict.exact === CODE_LENGTH;
-  const label = `Try ${ordinal}: ${guess.join(" ")}. ${describe(verdict)}`;
+  const label = t("try_label", { n: ordinal, guess: guess.join(" "), verdict: verdictText(lang, verdict) });
   const clickable = Boolean(onLoad) && !won;
 
   const body = (
@@ -40,8 +43,8 @@ export function GuessRow({ guess, verdict, ordinal, theirs, onLoad }: Props) {
       transition={{ duration: 0.22, ease: "easeOut" }}
     >
       {clickable ? (
-        <button type="button" className={cls} aria-label={`${label} Press to reuse these digits.`}
-          title="Reuse these digits" onClick={() => onLoad?.(guess)}>
+        <button type="button" className={cls} aria-label={`${label} ${t("reuse")}`}
+          title={t("reuse_short")} onClick={() => onLoad?.(guess)}>
           {body}
         </button>
       ) : (

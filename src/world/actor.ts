@@ -31,8 +31,11 @@ import {
 } from "./world";
 
 export type Intent = "stroll" | "explore" | "climb" | "letters" | "swing" | "tour" | "wave" | "trick";
-export type Routine = "walk" | "box" | "letters" | "swing" | "tour" | "dangle" | "trick" | "peek";
-export type Pose = "stand" | "walk" | "air" | "hang" | "wave" | "trick" | "look";
+export type Routine = "walk" | "box" | "letters" | "swing" | "tour" | "dangle" | "trick" | "peek" | "speak";
+export type Pose = "stand" | "walk" | "air" | "hang" | "wave" | "trick" | "look" | "talk";
+
+/** How long a critter holds up a message if nobody taps it away. */
+const TALK_S = 20;
 export type Mode =
   | "rise" | "sink" | "descend" | "settle" | "ascend"
   | "walk" | "rest" | "jump" | "fall" | "hang" | "swing" | "tour"
@@ -78,7 +81,7 @@ const TOUR_MAX_S = 25;
 type Task =
   | { k: "walk"; x: number }
   | { k: "jump"; to: { x: number; y: number }; land: string | null; lift: number; grip?: Grip }
-  | { k: "pose"; pose: "stand" | "wave" | "trick" | "look"; dur: number; face?: 1 | -1 }
+  | { k: "pose"; pose: "stand" | "wave" | "trick" | "look" | "talk"; dur: number; face?: 1 | -1 }
   | { k: "swing"; grips: Grip[] }
   | { k: "tour"; dir: 1 | -1 }
   | { k: "drop" }
@@ -507,6 +510,11 @@ export function spawnActor(world: World, kind: CritterKind, rng: Rng, routine?: 
 
   let entrance: "rise" | "peek" | "descend" | null =
     routine === "dangle" ? "descend" : routine === "peek" ? "peek" : routine ? "rise" : null;
+  if (routine === "speak") {
+    // It has come to deliver a message: up onto the table, and say it.
+    a.queue = [{ k: "pose", pose: "talk", dur: TALK_S }];
+    a.budget = 2;
+  }
   if (!entrance) {
     const r = rng();
     entrance = r < 0.15 && tables.length ? "peek" : r < 0.7 && tables.length ? "rise" : drops.length ? "descend" : tables.length ? "rise" : null;
@@ -1012,6 +1020,31 @@ export function step(world: World, a: Actor, dt: number, rng: Rng): boolean {
       return true;
     }
   }
+}
+
+/** How long a message is held up if nobody taps it away, seconds. */
+export const TALK_SECONDS = TALK_S;
+
+/**
+ * A message has arrived while this critter is on stage: it delivers it from
+ * where it is. On its feet it stops and holds the message up; mid-jump or
+ * mid-tour it carries on and the bubble simply goes with it.
+ */
+export function speak(a: Actor) {
+  if (a.mode === "walk" || a.mode === "rest" || a.mode === "pose") {
+    a.queue = [];
+    a.mode = "pose";
+    a.pose = "talk";
+    a.t = 0;
+    a.dur = TALK_S;
+    a.moving = false;
+    a.budget = Math.max(a.budget, 1);
+  }
+}
+
+/** The message has been read: the critter stops holding it up. */
+export function hush(a: Actor) {
+  if (a.mode === "pose" && a.pose === "talk") a.t = a.dur;
 }
 
 /**

@@ -4,13 +4,13 @@
  * transport; tests drive it directly; a future host (a Durable Object, a
  * Redis-backed worker) could wrap it just the same.
  *
- * Turn order resolves in PAIRS: the first mover guesses, then the other
- * seat, and only then can the match end. Without that, whoever moved first
- * would win a meaningful share of close games purely by going first.
+ * The match ends the moment a code is cracked: there is nothing left to
+ * play for. Who opens alternates on every rematch, so over a rivalry
+ * neither seat keeps the advantage of moving first.
  */
 
 import { CODE_LENGTH, isValidCode, scoreGuess, type Code } from "./engine";
-import type { ErrorCode, Outcome, Phase, PlayerInfo, Resume, RoomView, Seat, Turn } from "./protocol";
+import { CHAT_KEEP, type ErrorCode, type Outcome, type Phase, type PlayerInfo, type Resume, type RoomView, type Seat, type Turn } from "./protocol";
 
 export const SEATS: readonly Seat[] = ["host", "guest"];
 
@@ -37,6 +37,9 @@ export interface RoomState {
   crackedBy: Partial<Record<Seat, number>>;
   /** alternates each rematch so neither seat keeps the first move */
   firstMover: Seat;
+  /** table talk between the two seated players */
+  chat: { id: number; by: Seat; text: string }[];
+  chatSeq: number;
   /** last time any socket was attached; drives the empty-room sweep */
   lastSeen: number;
 }
@@ -59,6 +62,8 @@ export function createRoom(code: string, now: number): RoomState {
     history: [],
     crackedBy: {},
     firstMover: "host",
+    chat: [],
+    chatSeq: 0,
     lastSeen: now,
   };
 }
@@ -141,6 +146,8 @@ export function disconnect(room: RoomState, seat: Seat, now: number) {
 export function leave(room: RoomState, seat: Seat) {
   if (!room.players[seat]) return;
   delete room.players[seat];
+  // What was said stays between the two who said it.
+  room.chat = [];
   resetMatch(room, false);
 }
 
@@ -158,14 +165,10 @@ export function setSecret(room: RoomState, seat: Seat, code: Code): Result {
   return { ok: true };
 }
 
-/** The second mover closes every round. Only then may the match end. */
+/** Pass the turn; a round is one guess from each seat. */
 function endTurn(room: RoomState) {
   if (room.turn === room.firstMover) {
     room.turn = other(room.firstMover);
-    return;
-  }
-  if (Object.keys(room.crackedBy).length > 0) {
-    room.phase = "over";
     return;
   }
   room.round++;
@@ -184,10 +187,23 @@ export function guess(room: RoomState, seat: Seat, g: Code): Result {
   // The server scores it. Neither client ever sees the other's secret.
   const verdict = scoreGuess(g, defender.secret);
   room.history.push({ by: seat, guess: [...g], verdict, round: room.round });
-  if (verdict.exact === CODE_LENGTH && room.crackedBy[seat] === undefined) {
+  if (verdict.exact === CODE_LENGTH) {
+    // Cracked: the match is over at once.
     room.crackedBy[seat] = room.round;
+    room.phase = "over";
+    return { ok: true };
   }
   endTurn(room);
+  return { ok: true };
+}
+
+/** A line of table talk. Already cleaned and length-capped by the parser. */
+export function say(room: RoomState, seat: Seat, text: string): Result {
+  if (!room.players[seat]) return fail("not_now", "You are not seated at this table.");
+  if (!room.players[other(seat)]) return fail("not_now", "There is nobody to talk to yet.");
+  if (!text) return fail("bad_message", "That message was empty.");
+  room.chat.push({ id: ++room.chatSeq, by: seat, text });
+  if (room.chat.length > CHAT_KEEP) room.chat.splice(0, room.chat.length - CHAT_KEEP);
   return { ok: true };
 }
 
@@ -224,11 +240,9 @@ export function viewFor(room: RoomState, seat: Seat): RoomView {
   const outcome: Outcome | null =
     room.phase !== "over"
       ? null
-      : room.crackedBy[seat] !== undefined && room.crackedBy[other(seat)] !== undefined
-        ? "draw"
-        : room.crackedBy[seat] !== undefined
-          ? "win"
-          : "loss";
+      : room.crackedBy[seat] !== undefined
+        ? "win"
+        : "loss";
 
   return {
     code: room.code,
@@ -242,6 +256,7 @@ export function viewFor(room: RoomState, seat: Seat): RoomView {
     yourSecret: me.secret,
     yourHunt: room.history.filter((h) => h.by === seat),
     theirHunt: room.history.filter((h) => h.by !== seat),
+    chat: room.chat.map((c) => ({ id: c.id, mine: c.by === seat, text: c.text })),
     outcome,
     revealedSecrets:
       room.phase === "over" && room.players.host?.secret && room.players.guest?.secret

@@ -185,6 +185,9 @@ function handle(conn: Conn, raw: string) {
     case "rematch":
       res = R.requestRematch(room, seat);
       break;
+    case "chat":
+      res = R.say(room, seat, msg.text);
+      break;
     case "leave":
       detach(conn);
       R.leave(room, seat);

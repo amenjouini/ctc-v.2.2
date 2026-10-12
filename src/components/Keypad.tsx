@@ -1,3 +1,5 @@
+import { useT } from "@/i18n";
+
 const ORDER = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
 
 /**
@@ -25,22 +27,23 @@ export function Keypad({
   isBlocked, ruledOut, disabled, canErase, canSubmit, submitLabel,
   onPlace, onErase, onSubmit,
 }: Props) {
+  const t = useT();
   return (
-    <div className="keypad" role="group" aria-label="Keypad">
+    <div className="keypad" role="group" aria-label={t("keypad")}>
       {ORDER.map((d) => (
         <button
           key={d}
           type="button"
           className={`key ${ruledOut?.[d] ? "is-noted" : ""}`}
           disabled={disabled || isBlocked(d)}
-          aria-label={ruledOut?.[d] ? `${d}, ruled out in your notes` : d}
+          aria-label={ruledOut?.[d] ? t("key_ruled_out", { d }) : d}
           onClick={() => onPlace(d)}
         >
           {d}
         </button>
       ))}
       <button type="button" className="btn-wood key-erase" disabled={disabled || !canErase} onClick={onErase}>
-        Erase
+        {t("erase")}
       </button>
       <button type="button" className="btn key-fire" disabled={!canSubmit} onClick={onSubmit}>
         {submitLabel}

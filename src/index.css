@@ -35,49 +35,62 @@
   }
 }
 
+/* Each theme, by role:
+     sky / ground / sea   the scene behind everything
+     wood                 panels — dark and calm, in the theme's own hue
+     slate                wells sunk into a panel, and the rows inside them
+     key                  things you press: lighter than the panel they sit on
+     brass                THE accent — one per theme. Only on what you can act
+                          on next and what just happened; it is the only
+                          colour that glows.
+     paper                text, and the few light cards                       */
 :root[data-theme="dusk"] {
   --sky-0:#150c28; --sky-1:#1e1236; --sky-2:#2a1a46; --sky-3:#392353; --sky-4:#4c2e5d;
   --sky-5:#663a64; --sky-6:#8a4a64; --sky-7:#b4635c; --sky-8:#dc8b5e;
-  --wood-5:#f0c084; --wood-4:#cb8b4c; --wood-3:#9b5a31; --wood-2:#6e3729; --wood-1:#48212c; --wood-0:#2a1324;
+  --wood-5:#cdbcf5; --wood-4:#7a63b8; --wood-3:#3b2d66; --wood-2:#2e2352; --wood-1:#1f173b; --wood-0:#120d26;
   --paper-5:#fffae6; --paper-4:#f7e7be; --paper-3:#e3cc98; --paper-2:#c0a274;
-  --slate-4:#63548a; --slate-3:#453960; --slate-2:#2e2447; --slate-1:#1c1531; --slate-0:#100a20;
-  --brass-5:#fff6cc; --brass-4:#ffd46b; --brass-3:#edab3c; --brass-2:#b36c17; --brass-1:#713c14; --brass-0:#401f10;
+  --slate-4:#7566a3; --slate-3:#3d3261; --slate-2:#2a2148; --slate-1:#191230; --slate-0:#0d0819;
+  --brass-5:#fff3c4; --brass-4:#ffd45e; --brass-3:#ffb41f; --brass-2:#c97a08; --brass-1:#7a4306; --brass-0:#2e1802;
+  --key:#5642a0; --key-hi:#8a74d6; --key-lo:#33266b;
   --ground-4:#6e3729; --ground-3:#48212c; --ground-2:#2a1324; --ground-1:#1d0d1c; --ground-0:#140916;
-  --ink:#100a20; --scan:0.15;
+  --ink:#0d0819; --scan:0.05;
 }
 
 :root[data-theme="beach"] {
   --sky-0:#1e6fc4; --sky-1:#2c81d4; --sky-2:#3c93e2; --sky-3:#4fa5ee; --sky-4:#66b6f6;
   --sky-5:#84c7fa; --sky-6:#a5d8fc; --sky-7:#c8e8fd; --sky-8:#e9f6fe;
-  --wood-5:#d4f1f4; --wood-4:#4fc3d6; --wood-3:#0e7c93; --wood-2:#0a6076; --wood-1:#05445e; --wood-0:#032b3d;
+  --wood-5:#d6f4f7; --wood-4:#49b6cc; --wood-3:#135d75; --wood-2:#0f4a60; --wood-1:#09334a; --wood-0:#051f30;
   --paper-5:#fffff4; --paper-4:#fff6d8; --paper-3:#f0dfae; --paper-2:#cdb584;
-  --slate-4:#8497b4; --slate-3:#5e7089; --slate-2:#405167; --slate-1:#2b394d; --slate-0:#1b2534;
-  --brass-5:#fffbd8; --brass-4:#ffdf80; --brass-3:#f5b841; --brass-2:#c07e1c; --brass-1:#7e4c16; --brass-0:#472811;
+  --slate-4:#8fa8c4; --slate-3:#3d5670; --slate-2:#27405a; --slate-1:#162a40; --slate-0:#0c1a2b;
+  --brass-5:#fffbd0; --brass-4:#ffe76b; --brass-3:#ffcf24; --brass-2:#d99400; --brass-1:#855600; --brass-0:#3a2500;
+  --key:#1c86a3; --key-hi:#5fd0e6; --key-lo:#0d5068;
   --ground-4:#fff0c4; --ground-3:#f5dea0; --ground-2:#e0c179; --ground-1:#c09e58; --ground-0:#94773e;
   --sea-4:#7fe3f0; --sea-3:#3fbedc; --sea-2:#2093c4; --sea-1:#146b9e; --sea-0:#0d4a76;
-  --ink:#1b2534; --scan:0.07;
+  --ink:#0c1a2b; --scan:0.04;
 }
 
 :root[data-theme="snow"] {
   --sky-0:#0e1230; --sky-1:#161c42; --sky-2:#202856; --sky-3:#2c3668; --sky-4:#3a4880;
   --sky-5:#4e5d97; --sky-6:#6675ae; --sky-7:#8390c4; --sky-8:#a5afd8;
-  --wood-5:#d2f0ff; --wood-4:#6cc2f2; --wood-3:#257bbe; --wood-2:#1a5ea8; --wood-1:#133e78; --wood-0:#0d2650;
+  --wood-5:#d8ecff; --wood-4:#5f8fe0; --wood-3:#233a7c; --wood-2:#1b2e66; --wood-1:#121f4a; --wood-0:#0a122e;
   --paper-5:#ffffff; --paper-4:#eaf3ff; --paper-3:#cadcf0; --paper-2:#a0b6d2;
-  --slate-4:#5a69a0; --slate-3:#3e4b79; --slate-2:#2a3357; --slate-1:#1b213c; --slate-0:#111528;
-  --brass-5:#fff8e0; --brass-4:#ffd98c; --brass-3:#edb456; --brass-2:#b37e2e; --brass-1:#6e4c24; --brass-0:#3c2a18;
+  --slate-4:#6f80b8; --slate-3:#34437a; --slate-2:#222d5a; --slate-1:#141b3a; --slate-0:#0a0e24;
+  --brass-5:#e6fbff; --brass-4:#a6f0ff; --brass-3:#4fd8f7; --brass-2:#1795bd; --brass-1:#0c5b78; --brass-0:#04222e;
+  --key:#3558b8; --key-hi:#7ea2f2; --key-lo:#1f3880;
   --ground-4:#ffffff; --ground-3:#e4f0ff; --ground-2:#c2d8f2; --ground-1:#93afd6; --ground-0:#6683b4;
-  --ink:#111528; --scan:0.13;
+  --ink:#0a0e24; --scan:0.05;
 }
 
 :root[data-theme="autumn"] {
   --sky-0:#6b4a7a; --sky-1:#85577c; --sky-2:#a0667a; --sky-3:#bc7873; --sky-4:#d28d6c;
   --sky-5:#e3a466; --sky-6:#efbc69; --sky-7:#f7d179; --sky-8:#fce79a;
-  --wood-5:#ffd189; --wood-4:#f2913c; --wood-3:#bc4f1a; --wood-2:#a33518; --wood-1:#6e1e16; --wood-0:#41100f;
+  --wood-5:#ffd9b0; --wood-4:#cf6a3c; --wood-3:#5e2a26; --wood-2:#4a201f; --wood-1:#331514; --wood-0:#1f0b0c;
   --paper-5:#fff6dc; --paper-4:#f7e4b8; --paper-3:#e0c68e; --paper-2:#bc9c68;
-  --slate-4:#7a6478; --slate-3:#584659; --slate-2:#3b2d3f; --slate-1:#261c2a; --slate-0:#17111c;
-  --brass-5:#fff4c8; --brass-4:#ffd268; --brass-3:#efa935; --brass-2:#b36f16; --brass-1:#703e14; --brass-0:#402210;
+  --slate-4:#9a7f8f; --slate-3:#5a3f4c; --slate-2:#3d2933; --slate-1:#261820; --slate-0:#150c12;
+  --brass-5:#fff0c9; --brass-4:#ffc061; --brass-3:#ff8f1f; --brass-2:#c95a00; --brass-1:#7a3300; --brass-0:#2e1200;
+  --key:#94432a; --key-hi:#e0814f; --key-lo:#5c2618;
   --ground-4:#e8c878; --ground-3:#c49a4e; --ground-2:#96703a; --ground-1:#6b4c2e; --ground-0:#453120;
-  --ink:#17111c; --scan:0.12;
+  --ink:#150c12; --scan:0.05;
 }
 
 
@@ -104,6 +117,9 @@
   /* a body plus the frame's outline, and a stride's slack for its legs:
      room for a critter walking down the board's side */
   --gutter: calc(var(--crit) + var(--px) + 4px);
+  /* the accent light: the only glow in the game */
+  --glow: color-mix(in srgb, var(--brass-3) 60%, transparent);
+  --glow-good: color-mix(in srgb, var(--jade-3) 65%, transparent);
   --stage-gap: clamp(8px, 1.8vh, 20px);
   /* a critter is 16 art pixels at exactly 2x, so its pixels stay square */
   --crit: 32px;
@@ -148,7 +164,7 @@
   .frame > * { position: relative; z-index: 1; }
 
   .inset {
-    background: var(--slate-2);
+    background: var(--slate-1);
     border: var(--px) solid var(--slate-0);
     box-shadow: inset var(--px) var(--px) 0 0 var(--ink),
       inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--slate-3);
@@ -171,11 +187,12 @@
     margin: 0;
     text-shadow: -3px 0 var(--ink), 3px 0 var(--ink), 0 -3px var(--ink), 0 3px var(--ink),
       -3px -3px var(--ink), 3px -3px var(--ink), -3px 3px var(--ink), 3px 3px var(--ink),
-      0 6px 0 var(--brass-1), 0 9px 0 var(--ink);
+      0 6px 0 var(--brass-1), 0 9px 0 var(--ink), 0 0 26px var(--glow);
   }
+  /* Small labels: the readable UI face, not the 9px title face. */
   .eyebrow {
-    font-family: var(--font-title);
-    font-size: 9px; line-height: 1.6; letter-spacing: 0.06em;
+    font-family: var(--font-ui);
+    font-size: 14px; font-weight: 700; line-height: 1.3; letter-spacing: 0.08em; text-transform: uppercase;
     color: var(--brass-4); text-shadow: 0 2px 0 var(--ink); margin: 0;
   }
   .eyebrow.on-paper { color: var(--wood-2); text-shadow: none; }
@@ -195,7 +212,7 @@
     box-shadow: inset var(--px) var(--px) 0 0 var(--brass-4),
       inset calc(var(--px) * 2) calc(var(--px) * 2) 0 0 var(--brass-3),
       inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--brass-1),
-      0 var(--px) 0 0 var(--ink);
+      0 var(--px) 0 0 var(--ink), 0 0 20px -4px var(--glow);
   }
   .btn:active:not(:disabled) {
     transform: translateY(var(--px));
@@ -213,10 +230,10 @@
   .btn-wood {
     padding: 9px 14px; font-size: 14px; font-weight: 700;
     min-height: var(--tap);
-    color: var(--paper-5); background: var(--wood-3);
+    color: var(--paper-5); background: var(--key);
     border: var(--px) solid var(--ink);
-    box-shadow: inset var(--px) var(--px) 0 0 var(--wood-4),
-      inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--wood-1),
+    box-shadow: inset var(--px) var(--px) 0 0 var(--key-hi),
+      inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--key-lo),
       0 var(--px) 0 0 var(--ink);
   }
   .btn-wood:active:not(:disabled) { transform: translateY(var(--px)); }
@@ -225,29 +242,27 @@
   /* the destructive choice in a confirm dialog: present, never loud */
   .btn-quiet {
     font-family: var(--font-title); font-size: 10px; padding: 12px; min-height: var(--tap);
-    color: var(--paper-5); background: var(--wood-3);
+    color: var(--paper-5); background: var(--key-lo);
     border: var(--px) solid var(--ink);
-    box-shadow: inset var(--px) var(--px) 0 0 var(--wood-4),
-      inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--wood-1);
+    box-shadow: inset var(--px) var(--px) 0 0 var(--key);
   }
 
   /* Hover styles only where a pointer can hover — on touch screens they
      stick after a tap and make a button look pressed when it is not. */
   @media (hover: hover) {
     .btn:hover:not(:disabled) { background: var(--brass-4); color: var(--brass-1); }
-    .btn-wood:hover:not(:disabled), .btn-quiet:hover { background: var(--wood-4); color: var(--wood-0); }
-    .key:hover:not(:disabled) { background: var(--wood-4); color: var(--wood-0); }
+    .btn-wood:hover:not(:disabled), .btn-quiet:hover { background: var(--key-hi); color: var(--ink); }
+    .key:hover:not(:disabled) { background: var(--key-hi); color: var(--ink); }
     .row:is(button):hover { background: var(--slate-2); }
   }
 
   /* ---------- gauges ---------- */
   .gauge {
     display: flex; align-items: center; gap: 10px; padding: 8px 13px;
-    background: var(--slate-1); border: var(--px) solid var(--ink);
-    box-shadow: inset var(--px) var(--px) 0 0 var(--slate-3);
+    background: var(--slate-0); border: var(--px) solid var(--ink);
     white-space: nowrap;
   }
-  .gauge span { font-family: var(--font-title); font-size: 9px; color: var(--brass-4); }
+  .gauge span { font-family: var(--font-ui); font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate-4); }
   .gauge b {
     font-family: var(--font-title); font-size: 14px;
     color: var(--paper-5); font-variant-numeric: tabular-nums;
@@ -263,20 +278,19 @@
   .row {
     display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px;
     padding: clamp(4px, 0.8vh, 7px) 8px; width: 100%; text-align: left; color: inherit;
-    background: var(--slate-1); border: var(--px) solid var(--ink);
-    box-shadow: inset var(--px) var(--px) 0 0 var(--slate-2);
+    background: var(--slate-2); border: var(--px) solid var(--ink);
+    box-shadow: inset 0 var(--px) 0 0 var(--slate-3);
   }
-  .row.is-win { background: var(--brass-1); box-shadow: inset var(--px) var(--px) 0 0 var(--brass-2); }
-  .row.is-them { background: var(--slate-2); box-shadow: inset var(--px) var(--px) 0 0 var(--slate-3); }
+  .row.is-win { background: var(--brass-1); box-shadow: inset 0 var(--px) 0 0 var(--brass-2), 0 0 18px -2px var(--glow); }
+  .row.is-them { background: var(--slate-2); }
 
   .digit {
     width: 40px; height: 40px; display: grid; place-items: center;
     font-family: var(--font-title); font-size: 14px; color: var(--paper-5);
-    background: var(--wood-3); border: var(--px) solid var(--ink);
-    box-shadow: inset var(--px) var(--px) 0 0 var(--wood-4),
-      inset calc(var(--px) * 2) calc(var(--px) * 2) 0 0 var(--wood-3),
-      inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--wood-1);
-    text-shadow: 0 2px 0 var(--wood-0);
+    background: var(--key); border: var(--px) solid var(--ink);
+    box-shadow: inset var(--px) var(--px) 0 0 var(--key-hi),
+      inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--key-lo);
+    text-shadow: 0 2px 0 var(--ink);
   }
   .row.is-win .digit, .digit.is-gold {
     background: var(--brass-3); color: var(--brass-0);
@@ -300,7 +314,7 @@
   }
   .bar.exact {
     background: var(--jade-3);
-    box-shadow: inset 0 2px 0 0 var(--jade-4), inset 0 -3px 0 0 var(--jade-1), 0 0 0 1px var(--ink);
+    box-shadow: inset 0 2px 0 0 var(--jade-4), inset 0 -3px 0 0 var(--jade-1), 0 0 0 1px var(--ink), 0 0 10px 0 var(--glow-good);
   }
   .bar.near {
     background: transparent;
@@ -315,20 +329,18 @@
   .reel {
     position: relative; padding: 0; overflow: hidden;
     height: clamp(42px, 7.4vh, 76px); width: clamp(40px, 6vh, 60px);
-    background: var(--slate-1); border: var(--px) solid var(--ink);
-    box-shadow: inset var(--px) var(--px) 0 0 var(--slate-2),
-      inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--slate-3);
+    background: var(--slate-0); border: var(--px) solid var(--ink);
+    box-shadow: inset 0 var(--px) 0 0 var(--ink), inset 0 calc(var(--px) * -1) 0 0 var(--slate-2);
   }
   .reel[aria-current="true"] {
-    background: var(--wood-1);
-    box-shadow: inset var(--px) var(--px) 0 0 var(--wood-2),
-      inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--wood-4),
-      0 0 0 var(--px) var(--brass-3);
+    background: var(--slate-1);
+    box-shadow: inset 0 calc(var(--px) * -1) 0 0 var(--brass-2),
+      0 0 0 var(--px) var(--brass-3), 0 0 22px 0 var(--glow);
   }
   .reel:disabled { cursor: default; }
   .reel-face {
     position: absolute; inset: 0; display: grid; place-items: center;
-    font-family: var(--font-title); font-size: clamp(16px, 2.7vh, 24px); color: var(--paper-4);
+    font-family: var(--font-title); font-size: clamp(16px, 2.7vh, 24px); color: var(--paper-5);
     font-variant-numeric: tabular-nums; text-shadow: 0 3px 0 var(--ink);
   }
   .reel[aria-current="true"] .reel-face { color: var(--brass-4); text-shadow: 0 3px 0 var(--brass-1); }
@@ -351,21 +363,32 @@
 
   .key {
     font-family: var(--font-title); font-size: clamp(12px, 1.7vh, 15px);
-    color: var(--paper-5); background: var(--wood-3); border: var(--px) solid var(--ink);
-    box-shadow: inset var(--px) var(--px) 0 0 var(--wood-4),
-      inset calc(var(--px) * 2) calc(var(--px) * 2) 0 0 var(--wood-3),
-      inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--wood-1),
+    color: var(--paper-5); background: var(--key); border: var(--px) solid var(--ink);
+    box-shadow: inset var(--px) var(--px) 0 0 var(--key-hi),
+      inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--key-lo),
       0 var(--px) 0 0 var(--ink);
-    text-shadow: 0 2px 0 var(--wood-0);
+    text-shadow: 0 2px 0 var(--ink);
   }
   .key:active:not(:disabled) { transform: translateY(var(--px)); }
   .key:disabled {
-    background: var(--slate-1); color: var(--slate-3);
-    box-shadow: inset var(--px) var(--px) 0 0 var(--slate-2);
+    background: var(--wood-2); color: var(--wood-4);
+    box-shadow: none; opacity: 0.55;
     text-shadow: none;
   }
+  /* A full code: the Fire key is the one thing on screen asking to be pressed. */
+  .key-fire:not(:disabled) { animation: ready 800ms var(--step-pop) infinite alternate; }
+  @keyframes ready {
+    from { box-shadow: inset var(--px) var(--px) 0 0 var(--brass-4), inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--brass-1), 0 var(--px) 0 0 var(--ink), 0 0 10px -2px var(--glow); }
+    to { box-shadow: inset var(--px) var(--px) 0 0 var(--brass-5), inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--brass-1), 0 var(--px) 0 0 var(--ink), 0 0 26px 2px var(--glow); }
+  }
   /* a digit crossed off in the notes: struck through, not just recoloured */
-  .key.is-noted { color: var(--rose-4); text-decoration: line-through; text-decoration-thickness: 3px; }
+  .key.is-noted {
+    color: var(--rose-5); background: var(--rose-1);
+    box-shadow: inset var(--px) var(--px) 0 0 var(--rose-2),
+      inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--rose-0), 0 var(--px) 0 0 var(--ink);
+    text-shadow: 0 2px 0 var(--rose-0);
+    text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: var(--rose-4);
+  }
 
   .note {
     height: clamp(30px, 3.8vh, 36px); font-family: var(--font-title); font-size: clamp(10px, 1.4vh, 12px);
@@ -374,8 +397,9 @@
     box-shadow: inset var(--px) var(--px) 0 0 var(--paper-5);
   }
   .note[aria-pressed="true"] {
-    background: var(--wood-1); color: var(--rose-4); text-decoration: line-through;
-    box-shadow: inset var(--px) var(--px) 0 0 var(--wood-2);
+    background: var(--rose-1); color: var(--rose-5); border-color: var(--rose-0);
+    text-decoration: line-through; text-decoration-color: var(--rose-4);
+    box-shadow: inset var(--px) var(--px) 0 0 var(--rose-2);
   }
 
   .pip { width: 9px; height: 9px; background: var(--brass-3);
@@ -395,17 +419,80 @@
   .field-text { font-family: var(--font-ui); font-size: 16px; font-weight: 700;
     letter-spacing: 0; text-transform: none; text-align: left; }
   .field[aria-invalid="true"] { box-shadow: inset var(--px) var(--px) 0 0 var(--paper-5), 0 0 0 var(--px) var(--rose-3); }
-  .field-label { display: block; margin-bottom: 6px; font-family: var(--font-title); font-size: 9px;
-    color: var(--brass-4); text-shadow: 0 2px 0 var(--ink); }
+  .field-label { display: block; margin-bottom: 6px; font-family: var(--font-ui); font-size: 14px; font-weight: 700;
+    color: var(--paper-3); }
   .field-error { font-size: 14px; color: var(--rose-4); margin: 0; }
 
   .swatch { width: 32px; height: 32px; padding: 0; border: var(--px) solid var(--ink); line-height: 0; }
   .swatch svg { width: 100%; height: 100%; display: block; }
   .swatch[aria-pressed="true"] { box-shadow: 0 0 0 var(--px) var(--brass-3); }
-  .theme-picker {
-    grid-area: themes; display: flex; gap: 6px; padding: 6px;
-    background: var(--slate-1); border: var(--px) solid var(--ink);
-    box-shadow: inset var(--px) var(--px) 0 0 var(--slate-3);
+  .theme-picker { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .theme-picker .swatch {
+    width: 100%; height: auto; display: grid; gap: 6px; padding: 0; border: 0; background: none;
+    font-size: 13px; font-weight: 700; text-transform: capitalize; color: var(--paper-3);
+  }
+  .theme-picker .swatch svg { aspect-ratio: 1; border: var(--px) solid var(--ink); image-rendering: pixelated; }
+  .theme-picker .swatch[aria-pressed="true"] { color: var(--brass-4); box-shadow: none; }
+  .theme-picker .swatch[aria-pressed="true"] svg { border-color: var(--brass-3); box-shadow: 0 0 16px -2px var(--glow); }
+
+  /* the one button that opens How to play, themes and settings */
+  .menu-btn {
+    grid-area: themes; width: var(--tap); height: var(--tap); padding: 0;
+    display: grid; place-items: center;
+    background: var(--key); border: var(--px) solid var(--ink);
+    box-shadow: inset var(--px) var(--px) 0 0 var(--key-hi),
+      inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--key-lo), 0 var(--px) 0 0 var(--ink);
+  }
+  .menu-btn:active { transform: translateY(var(--px)); }
+  .menu-btn svg { width: 20px; height: 20px; display: block; }
+  .menu-section { margin-top: 18px; }
+  .menu-section:first-of-type { margin-top: 0; }
+  .lang-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .toggle {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
+    padding: 10px 12px; font-size: 16px; font-weight: 700; color: var(--paper-5);
+    background: var(--slate-1); border: var(--px) solid var(--ink); min-height: var(--tap);
+  }
+  .toggle i { width: 34px; height: 18px; background: var(--slate-3); border: 2px solid var(--ink); position: relative; flex: none; }
+  .toggle i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; background: var(--paper-3); }
+  .toggle[aria-pressed="true"] i { background: var(--brass-2); }
+  .toggle[aria-pressed="true"] i::after { left: 18px; background: var(--brass-4); box-shadow: 0 0 8px var(--glow); }
+
+  /* a secret behind a lock: tap to show, tap to hide */
+  .lock { cursor: pointer; }
+  .lock svg { width: 14px; height: 14px; flex: none; }
+  .lock b { letter-spacing: 0.12em; }
+
+  /* the front door: two big choices */
+  .btn-hero { font-family: var(--font-title); font-size: clamp(13px, 3.6vw, 16px); padding: 20px 14px; line-height: 1.4; }
+
+  /* table talk */
+  .chat-list {
+    display: flex; flex-direction: column; gap: 6px; max-height: min(34vh, 220px); overflow-y: auto;
+    padding: 8px; background: var(--slate-1); border: var(--px) solid var(--ink);
+    scrollbar-width: thin; scrollbar-color: var(--key) var(--slate-0);
+  }
+  .chat-line {
+    margin: 0; max-width: 85%; padding: 6px 9px; font-size: 15px; line-height: 1.3; overflow-wrap: anywhere;
+    align-self: flex-start; background: var(--paper-4); color: var(--ink); border: 2px solid var(--ink);
+  }
+  .chat-line.mine { align-self: flex-end; background: var(--key); color: var(--paper-5); }
+  .msg-btn { cursor: pointer; position: relative; color: var(--brass-4); padding-inline: 10px; }
+  .msg-btn svg { width: 18px; height: 16px; display: block; }
+  .msg-btn .tab-dot { position: absolute; top: -4px; right: -4px; }
+
+  /* a win: pixels fly */
+  .burst { position: absolute; left: 50%; top: 34px; width: 0; height: 0; pointer-events: none; }
+  .burst i {
+    position: absolute; width: 8px; height: 8px; background: var(--brass-3); box-shadow: 0 0 8px var(--glow);
+    animation: burst 900ms steps(9, end) forwards;
+  }
+  .burst i:nth-child(3n) { background: var(--jade-3); box-shadow: 0 0 8px var(--glow-good); }
+  .burst i:nth-child(4n) { background: var(--paper-5); width: 6px; height: 6px; }
+  @keyframes burst {
+    from { transform: translate(0, 0); opacity: 1; }
+    70% { opacity: 1; }
+    to { transform: translate(var(--bx), var(--by)); opacity: 0; }
   }
 
   /* ---------- the guess ledger: the one scroll region on a board ---------- */
@@ -442,6 +529,8 @@
     min-height: clamp(32px, 4.6vh, 44px); font-size: clamp(13px, 1.8vh, 16px); line-height: 1.35;
   }
   .readout.is-alert { color: var(--rose-2); }
+  /* spoken to screen readers, not shown: the bars already say it */
+  .readout.sr-only { min-height: 0; padding: 0; border: 0; }
 
   .link-dot { width: 10px; height: 10px; flex: none; background: var(--slate-4); }
   .link-dot.live { background: var(--jade-3); }
@@ -590,6 +679,79 @@
 @keyframes wave { from { transform: rotate(0deg); } to { transform: rotate(-46deg); } }
 @keyframes look { 50% { transform: translateY(-2px); } }
 
+/* What the rival said, in a pixel speech balloon above the critter: a
+   small dot, a bigger dot, then the balloon — white, inked outline, corners
+   rounded in steps, a pointed tail coming down towards the speaker. Tap it
+   away. The outline is a hard drop-shadow traced round balloon and tail. */
+.say { position: absolute; left: 0; top: 0; width: 0; height: 0; --balloon: #ffffff; }
+.say-dot {
+  position: absolute; background: var(--balloon); box-shadow: 0 0 0 2px var(--ink);
+  opacity: 0; animation: say-pop 240ms var(--step-pop) forwards;
+}
+.say-dot.d1 { left: 2px; top: -10px; width: 5px; height: 5px; animation-delay: 150ms; }
+.say-dot.d2 { left: 7px; top: -22px; width: 8px; height: 8px; animation-delay: 420ms; }
+.say[data-side="-1"] .say-dot.d1 { left: -7px; }
+.say[data-side="-1"] .say-dot.d2 { left: -15px; }
+.say-bubble {
+  position: absolute; bottom: 40px; left: -6px; width: max-content; min-width: 56px; max-width: min(240px, 70vw);
+  padding: 0; border: 0; background: none; color: var(--ink);
+  filter: drop-shadow(3px 0 0 var(--ink)) drop-shadow(-3px 0 0 var(--ink)) drop-shadow(0 3px 0 var(--ink))
+    drop-shadow(0 -3px 0 var(--ink));
+  pointer-events: auto; cursor: pointer;
+  opacity: 0; transform-origin: var(--tail-x, 14px) calc(100% + 12px);
+  animation: say-pop 300ms var(--step-pop) 700ms forwards;
+}
+.say-bubble span {
+  display: block; padding: 9px 13px; background: var(--balloon);
+  font-family: var(--font-ui); font-size: 16px; font-weight: 700; line-height: 1.3;
+  text-align: left; overflow-wrap: anywhere;
+  /* each corner rounded in two 3px steps */
+  clip-path: polygon(
+    6px 0, calc(100% - 6px) 0, calc(100% - 6px) 3px, calc(100% - 3px) 3px, calc(100% - 3px) 6px, 100% 6px,
+    100% calc(100% - 6px), calc(100% - 3px) calc(100% - 6px), calc(100% - 3px) calc(100% - 3px),
+    calc(100% - 6px) calc(100% - 3px), calc(100% - 6px) 100%,
+    6px 100%, 6px calc(100% - 3px), 3px calc(100% - 3px), 3px calc(100% - 6px), 0 calc(100% - 6px),
+    0 6px, 3px 6px, 3px 3px, 6px 3px);
+}
+/* the tail: a stepped point, leaning towards the speaker */
+.say-bubble::after {
+  content: ""; position: absolute; top: calc(100% - 1px); left: var(--tail-x, 14px); width: 14px; height: 12px;
+  background: var(--balloon);
+  clip-path: polygon(0 0, 100% 0, 100% 4px, 10px 4px, 10px 8px, 5px 8px, 5px 100%, 0 100%);
+}
+.say[data-side="-1"] .say-bubble::after {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 9px 100%, 9px 8px, 4px 8px, 4px 4px, 0 4px);
+}
+@keyframes say-pop { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: scale(1); } }
+
+/* A win: the critter jumps for joy on the result card, fireworks around it. */
+.cheer { position: absolute; left: 0; right: 0; top: 0; height: 0; pointer-events: none; }
+.cheer-critter {
+  position: absolute; left: calc(50% - var(--crit) / 2); bottom: calc(clamp(18px, 3vh, 28px) + var(--px) * 2);
+  width: var(--crit); height: var(--crit); animation: joy 520ms steps(4, end) infinite;
+}
+.cheer-critter svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.cheer-critter .arm { transform-box: fill-box; transform-origin: 50% 90%; animation: wave 260ms var(--step-fast) infinite alternate; }
+.cheer-critter .leg-l, .cheer-critter .leg-r { transform-box: fill-box; transform-origin: 50% 0; }
+@keyframes joy { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-16px); } 60% { transform: translateY(-14px); } }
+.firework { position: absolute; width: 0; height: 0; }
+.firework i {
+  position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; opacity: 0;
+  background: var(--brass-3); box-shadow: 0 0 8px var(--glow);
+  animation: rocket 1500ms steps(10, end) infinite;
+}
+.firework.f1 { left: 16%; top: -70px; }
+.firework.f2 { left: 84%; top: -54px; }
+.firework.f3 { left: 50%; top: -110px; }
+.firework.f2 i { animation-delay: 500ms; background: var(--jade-3); box-shadow: 0 0 8px var(--glow-good); }
+.firework.f3 i { animation-delay: 1000ms; background: var(--rose-3); box-shadow: 0 0 8px var(--rose-3); }
+@keyframes rocket {
+  0% { transform: translate(0, 0); opacity: 0; }
+  8% { opacity: 1; }
+  60% { transform: translate(var(--bx), var(--by)); opacity: 1; }
+  100% { transform: translate(var(--bx), calc(var(--by) + 14px)); opacity: 0; }
+}
+
 /* effects: a puff of smoke, a burst of sparkles */
 .fx { position: absolute; left: 0; top: 0; width: 0; height: 0; }
 .fx i { position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; }
@@ -638,6 +800,7 @@
 }
 .masthead:not(:has(.toolbar)) { grid-template-areas: "title themes"; }
 .masthead-title { grid-area: title; white-space: nowrap; justify-self: start; font-size: clamp(11px, 3.6vw, 28px); }
+.masthead > .menu-btn { justify-self: end; }
 .toolbar { grid-area: tools; display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; min-width: 0; }
 .toolbar > * { flex: 0 0 auto; }
 @media (min-width: 1024px) {
@@ -648,13 +811,30 @@
   .masthead:not(:has(.toolbar)) { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "title . themes"; }
   .toolbar { justify-content: flex-end; flex-wrap: nowrap; }
 }
+/* Phones. The height belongs to the guesses: the header's tool row is
+   gone (its actions are in the menu), and tiles, rows and reels are a size
+   smaller, so twice as many guesses show without scrolling. */
+@media (max-width: 639px) {
+  .masthead { grid-template-areas: "title themes"; }
+  .masthead .toolbar { display: none; }
+  .board { padding: 8px; gap: 8px; }
+  .board-log, .board-controls { gap: 8px; }
+  .ledger { padding: 5px; gap: 4px; }
+  .row { padding: 3px 6px; gap: 8px; }
+  .row .digit { width: 30px; height: 30px; font-size: 12px; }
+  .reel { height: 48px; width: 44px; }
+  .reels-well { padding: 2px 0; }
+  .key, .key-erase, .key-fire { height: 44px; }
+  .stage-room .board-head { display: none; }
+  .status-bar { flex-wrap: nowrap; padding: 6px 8px; margin-bottom: 8px; }
+  .status-gauges { flex-wrap: nowrap; flex: none; gap: 4px; }
+  .status-gauges .gauge { padding: 5px 7px; gap: 5px; min-height: 36px; }
+}
 @media (max-width: 639px) {
   .masthead { gap: 6px 8px; }
-  .theme-picker { gap: 4px; padding: 4px; }
-  .swatch { width: 24px; height: 24px; }
-  /* the title shares its row with the picker (about 124px with its frame):
-     it takes exactly the width that is left, about 14.5 glyphs of it */
-  .masthead-title { font-size: clamp(10px, calc((100vw - 2 * var(--gutter) - 132px) / 14.5), 18px); }
+  /* the title shares its row with the menu button: it takes exactly the
+     width that is left, about 14.5 glyphs of it */
+  .masthead-title { font-size: clamp(10px, calc((100vw - 2 * var(--gutter) - var(--tap) - 14px) / 14.5), 20px); }
   /* tools share one row evenly instead of stacking into a tower */
   .toolbar { gap: 6px; flex-wrap: nowrap; }
   .toolbar > * { flex: 1 1 auto; justify-content: center; min-width: 0; }
@@ -773,8 +953,7 @@
   .toolbar .gauge-label { display: none; }
   .toolbar { justify-content: flex-end; flex-wrap: nowrap; }
   .toolbar > * { flex: 0 0 auto; }
-  .swatch { width: 24px; height: 24px; }
-  .theme-picker { padding: 4px; gap: 4px; }
+  .menu-btn { width: 36px; height: 36px; }
   .toolbar .gauge, .toolbar .btn-wood { min-height: 36px; padding: 4px 10px; }
   .status-bar { padding: 6px 10px; margin-bottom: 6px; }
   .board-tabs { margin-bottom: 6px; }

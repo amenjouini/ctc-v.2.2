@@ -1,19 +1,21 @@
 import { useCallback, useState } from "react";
 import type { Code } from "@shared/engine";
 import { Masthead } from "@/components/Chrome";
-import { Critters } from "@/components/Critters";
+import { Cheer, Critters } from "@/components/Critters";
 import { Ledger } from "@/components/GuessRow";
 import { Keypad } from "@/components/Keypad";
-import { Modal, QuitButton, RailCards } from "@/components/Rail";
+import { Modal, NotesPad, QuitButton, RailCards } from "@/components/Rail";
 import { Reels } from "@/components/Reels";
 import { useDraft, useGameKeys } from "@/hooks/useDraft";
 import { useSoloGame, REVEALS_PER_DAY } from "@/hooks/useSoloGame";
 import type { Theme } from "@/hooks/useTheme";
+import { triesText, useLang, useT, verdictText } from "@/i18n";
 
 export function Solo({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) => void }) {
   const game = useSoloGame();
+  const t = useT();
+  const lang = useLang();
   const draft = useDraft();
-  const [guide, setGuide] = useState(false);
   const [askNew, setAskNew] = useState(false);
   /** the win card was closed to look back over the board */
   const [reviewing, setReviewing] = useState(false);
@@ -38,69 +40,93 @@ export function Solo({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
   const spent = REVEALS_PER_DAY - game.revealsLeft;
   const readout =
     game.revealed && !game.solved
-      ? `The code is ${game.code.join("")}. This round will not count towards your best.`
+      ? t("revealed_readout", { code: game.code.join("") })
       : game.turns.length === 0
-        ? "Pick four different digits, then crack it."
-        : game.readout;
+        ? ""
+        : verdictText(lang, game.turns[game.turns.length - 1].verdict);
+  const savedWarning = t("saved_warning");
+  const tries = triesText(lang, game.turns.length);
+  const showCode = game.revealed && !game.solved;
 
   return (
     <div className="shell relative mx-auto w-full max-w-[1160px]">
-      <Masthead theme={theme} setTheme={setTheme} lead right={
+      <Masthead theme={theme} setTheme={setTheme} lead
+        menuExtra={(close) => (
+          <>
+            {/* On a phone the header row is given to the board, so the
+                game's own actions live here. */}
+            <section className="menu-section sm:hidden">
+              <p className="eyebrow mb-3">{t("this_game")}</p>
+              <div className="grid gap-2.5">
+                <button type="button" className="btn-wood w-full" onClick={() => { close(); if (inProgress) setAskNew(true); else fresh(); }}>{t("new_code")}</button>
+                {!game.solved && (
+                  <button type="button" className="btn-wood w-full" disabled={game.revealed || game.revealsLeft <= 0}
+                    onClick={() => { game.reveal(); close(); }}>
+                    {game.revealed ? t("code_shown") : t("show_code_left", { n: game.revealsLeft })}
+                  </button>
+                )}
+                <QuitButton className="btn-quiet w-full" confirm={inProgress} warning={savedWarning} />
+              </div>
+            </section>
+            <section className="menu-section lg:hidden">
+              <NotesPad ruledOut={game.ruledOut} onToggle={game.toggleRuledOut} />
+            </section>
+          </>
+        )}
+        right={
         <>
-          <div className="gauge max-sm:hidden" data-world="box" data-world-id="tries"><span>Tries</span><b>{game.turns.length}</b></div>
-          <div className="gauge" data-world="box" data-world-id="best"><span>Best</span><b style={{ color: "var(--brass-3)" }}>{game.best ?? "--"}</b></div>
-          <button type="button" className="btn-wood lg:hidden" data-world="box" data-world-id="guide" onClick={() => setGuide(true)}>Guide</button>
-          <button type="button" className="btn-wood" data-world="box" data-world-id="new-code" onClick={() => (inProgress ? setAskNew(true) : fresh())}>New code</button>
-          <QuitButton worldBox confirm={inProgress} warning="Your board is saved on this device, so you can pick it up again later." />
+          <div className="gauge max-sm:hidden" data-world="box" data-world-id="tries"><span>{t("tries")}</span><b>{game.turns.length}</b></div>
+          <div className="gauge" data-world="box" data-world-id="best"><span>{t("best")}</span><b style={{ color: "var(--brass-3)" }}>{game.best ?? "--"}</b></div>
+          <button type="button" className="btn-wood" data-world="box" data-world-id="new-code" onClick={() => (inProgress ? setAskNew(true) : fresh())}>{t("new_code")}</button>
+          <QuitButton worldBox confirm={inProgress} warning={savedWarning} />
         </>
       } />
 
       <main className="shell-stage stage-solo">
-        <section className="frame board" aria-label="Your board">
+        <section className="frame board" aria-label={t("your_board")}>
           <Critters theme={theme} />
 
           <div className="board-log">
             <div className="board-head">
-              <p className="eyebrow">Your guesses</p>
+              <p className="eyebrow">{t("your_guesses")}</p>
               <p className="eyebrow">
-                {game.turns.length === 0 ? "Nothing yet" : `${game.turns.length} ${game.turns.length === 1 ? "try" : "tries"}`}
+                <span className="sm:hidden">{t("best")} {game.best ?? "--"} &middot; </span>
+                {tries}
               </p>
             </div>
 
-            <Ledger turns={game.turns} onLoad={game.solved ? undefined : draft.load} label="Your guesses"
-              empty={<>
-                <p className="eyebrow mb-2.5" style={{ fontSize: 11 }}>The code is set</p>
-                <p>Four different digits are waiting.<br />A first guess is never wasted.</p>
-              </>} />
+            <Ledger turns={game.turns} onLoad={game.solved ? undefined : draft.load} label={t("your_guesses")}
+              empty={<p className="eyebrow">{t("four_digits")}</p>} />
 
-            <p className={`parchment readout ${game.revealed && !game.solved ? "is-alert" : ""}`} aria-live="polite">
+            {/* Shown only when it says something the bars do not. */}
+            <p className={showCode ? "parchment readout is-alert" : "readout sr-only"} aria-live="polite">
               {readout}
             </p>
           </div>
 
           <div className="board-controls">
-            <div className="inset reels-well">
+            <div className="reels-well">
               <Reels slots={draft.slots} active={draft.slot} locked={game.solved} onFocusSlot={draft.setSlot} />
             </div>
 
             <Keypad
               isBlocked={draft.isBlocked} ruledOut={game.ruledOut} disabled={game.solved}
-              canErase={draft.used.length > 0} canSubmit={draft.complete && !game.solved} submitLabel="Crack it"
+              canErase={draft.used.length > 0} canSubmit={draft.complete && !game.solved} submitLabel={t("crack_it")}
               onPlace={draft.place} onErase={draft.clear} onSubmit={fire}
             />
 
             {game.solved ? (
-              <button type="button" className="btn btn-big board-extra w-full" onClick={fresh}>Next code</button>
+              <button type="button" className="btn btn-big board-extra w-full" onClick={fresh}>{t("next_code")}</button>
             ) : (
-              <button type="button" className="btn-wood board-extra flex w-full items-center justify-center gap-3.5"
+              <button type="button" className="btn-wood board-extra flex w-full items-center justify-center gap-3.5 max-sm:hidden"
                 disabled={game.revealed || game.revealsLeft <= 0}
                 onClick={game.reveal}>
                 <span>
-                  {game.revealed ? "Code shown for this round"
-                    : game.revealsLeft <= 0 ? "No reveals left today"
-                    : "Give up — show the code"}
+                  {game.revealed ? t("code_shown")
+                    : game.revealsLeft <= 0 ? t("no_reveals")
+                    : t("show_code")}
                 </span>
-                <span className="flex gap-1" aria-label={`${game.revealsLeft} of ${REVEALS_PER_DAY} reveals left today`}>
+                <span className="flex gap-1" aria-label={t("reveals_left", { n: game.revealsLeft, max: REVEALS_PER_DAY })}>
                   {Array.from({ length: REVEALS_PER_DAY }).map((_, i) => (
                     <span key={i} className={`pip ${i < spent ? "spent" : ""}`} />
                   ))}
@@ -115,41 +141,37 @@ export function Solo({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
         </aside>
       </main>
 
-      <Modal open={guide} onClose={() => setGuide(false)} labelledBy="guide-title">
-        <RailCards ruledOut={game.ruledOut} onToggle={game.toggleRuledOut} inModal />
-        <button type="button" className="btn mt-5 w-full" onClick={() => setGuide(false)}>Close</button>
-      </Modal>
-
       <Modal open={askNew} onClose={() => setAskNew(false)} labelledBy="new-title">
-        <h2 className="title mb-3 text-center" style={{ fontSize: 16 }} id="new-title">Start a new code?</h2>
+        <h2 className="title mb-3 text-center" style={{ fontSize: 16 }} id="new-title">{t("new_q")}</h2>
         <p className="copy text-center" style={{ color: "var(--paper-3)" }}>
-          This board will be thrown away. It will not count against your best.
+          {t("new_warning")}
         </p>
         <div className="mt-6 grid gap-2.5">
-          <button type="button" className="btn btn-big w-full" onClick={() => setAskNew(false)} autoFocus>Keep this one</button>
-          <button type="button" className="btn-quiet w-full" onClick={fresh}>New code</button>
+          <button type="button" className="btn btn-big w-full" onClick={() => setAskNew(false)} autoFocus>{t("keep_this")}</button>
+          <button type="button" className="btn-quiet w-full" onClick={fresh}>{t("new_code")}</button>
         </div>
       </Modal>
 
       <Modal open={game.solved && !reviewing} tone="result" labelledBy="solved-title" onClose={() => setReviewing(true)}>
-        <div className="text-center">
-          <h2 className="title mb-3" style={{ fontSize: 19 }} id="solved-title">Cracked it</h2>
-          {game.newBest && <p className="badge mb-3">New best</p>}
+        <div className="relative text-center">
+          <Cheer theme={theme} />
+          <h2 className="title mb-3" style={{ fontSize: 19 }} id="solved-title">{t("cracked")}</h2>
+          {game.newBest && <p className="badge mb-3">{t("new_best")}</p>}
           <p className="copy" style={{ color: "var(--paper-4)" }}>
-            {game.turns.length} {game.turns.length === 1 ? "try" : "tries"}. The code was:
+            {t("code_was", { tries })}
           </p>
           <div className="my-5 flex justify-center gap-2">
             {game.code.map((d, i) => <span key={i} className="digit is-gold">{d}</span>)}
           </div>
           {game.revealed && (
             <p className="copy mb-3" style={{ fontSize: 15, color: "var(--rose-4)" }}>
-              Revealed round &mdash; not counted.
+              {t("revealed_note")}
             </p>
           )}
-          <button type="button" className="btn btn-big w-full" onClick={fresh} autoFocus>Next code</button>
+          <button type="button" className="btn btn-big w-full" onClick={fresh} autoFocus>{t("next_code")}</button>
           <div className="mt-3 grid grid-cols-2 gap-2.5">
-            <button type="button" className="btn-wood" onClick={() => setReviewing(true)}>See the board</button>
-            <QuitButton label="Menu" confirm={false} />
+            <button type="button" className="btn-wood" onClick={() => setReviewing(true)}>{t("see_board")}</button>
+            <QuitButton label={t("menu")} confirm={false} />
           </div>
         </div>
       </Modal>

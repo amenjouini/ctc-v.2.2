@@ -16,13 +16,16 @@ import { CODE_LENGTH, isRoomCode, type Code, type Verdict } from "./engine";
 /** Bumped whenever a message shape changes incompatibly. A stale client
  *  (an old tab, an app build that has not updated) is told to refresh
  *  instead of failing in confusing ways. */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 export const NAME_MAX = 18;
+/** longest chat message, and how many the room remembers */
+export const CHAT_MAX = 60;
+export const CHAT_KEEP = 30;
 
 export type Seat = "host" | "guest";
 export type Phase = "lobby" | "setup" | "play" | "over";
-export type Outcome = "win" | "loss" | "draw";
+export type Outcome = "win" | "loss";
 
 export interface Turn {
   by: Seat;
@@ -39,6 +42,14 @@ export interface PlayerInfo {
   ready: boolean;
   /** has asked for a rematch after the match ended */
   wantsRematch: boolean;
+}
+
+/** One line of table talk, as one player sees it. */
+export interface ChatLine {
+  id: number;
+  /** you said it (otherwise your rival did) */
+  mine: boolean;
+  text: string;
 }
 
 /** What one client is allowed to know about the match. */
@@ -59,6 +70,8 @@ export interface RoomView {
   yourHunt: Turn[];
   /** their guesses at your code */
   theirHunt: Turn[];
+  /** table talk with the current rival, oldest first */
+  chat: ChatLine[];
   /** only populated once phase === "over" */
   outcome: Outcome | null;
   revealedSecrets: { host: Code; guest: Code } | null;
@@ -87,6 +100,7 @@ export type ClientMessage =
   | { t: "setSecret"; code: Code }
   | { t: "guess"; guess: Code }
   | { t: "rematch" }
+  | { t: "chat"; text: string }
   | { t: "leave" }
   | { t: "ping" };
 
@@ -120,14 +134,19 @@ export type ServerMessage =
   | { t: "error"; code: ErrorCode; reason: string }
   | { t: "pong" };
 
-/** Strip control characters and collapse whitespace; never trust a name. */
-export function cleanName(raw: unknown): string {
+/** Strip control characters and collapse whitespace; never trust text
+ *  from the network. */
+export function cleanText(raw: unknown, max: number): string {
   if (typeof raw !== "string") return "";
   return raw
     .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2066-\u2069]/g, "")
     .replace(/\s+/g, " ")
     .trim()
-    .slice(0, NAME_MAX);
+    .slice(0, max);
+}
+
+export function cleanName(raw: unknown): string {
+  return cleanText(raw, NAME_MAX);
 }
 
 /** Four single-character strings. Whether they form a LEGAL code is the
@@ -175,6 +194,10 @@ export function parseClientMessage(raw: string): ClientMessage | null {
     case "guess": {
       const guess = asFour(o.guess);
       return guess ? { t: "guess", guess } : null;
+    }
+    case "chat": {
+      const text = cleanText(o.text, CHAT_MAX);
+      return text ? { t: "chat", text } : null;
     }
     case "rematch":
     case "leave":

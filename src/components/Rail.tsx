@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { dialogs } from "@/hooks/dialogs";
+import { useT } from "@/i18n";
 
 const DIGITS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
 
@@ -101,7 +102,7 @@ export function Modal({
  * option is the quiet one while staying is the loud one.
  */
 export function QuitButton({
-  label = "Quit",
+  label,
   warning,
   confirm = true,
   onLeave,
@@ -120,6 +121,7 @@ export function QuitButton({
   worldBox?: boolean;
 }) {
   const nav = useNavigate();
+  const t = useT();
   const [asking, setAsking] = useState(false);
   const go = () => {
     onLeave?.();
@@ -130,23 +132,23 @@ export function QuitButton({
     <>
       <button type="button" className={className} onClick={() => (confirm ? setAsking(true) : go())}
         data-world={worldBox ? "box" : undefined} data-world-id={worldBox ? "quit" : undefined}>
-        {label}
+        {label ?? t("quit")}
       </button>
 
       <Modal open={asking} onClose={() => setAsking(false)} labelledBy="quit-title">
         <h2 className="title mb-3 text-center" style={{ fontSize: 17 }} id="quit-title">
-          Leave the table?
+          {t("leave_q")}
         </h2>
         <p className="copy text-center" style={{ color: "var(--paper-3)" }}>
-          {warning ?? "Your current board will be lost."}
+          {warning ?? t("leave_default")}
         </p>
 
         <div className="mt-6 grid gap-2.5">
           <button type="button" className="btn btn-big w-full" onClick={() => setAsking(false)} autoFocus>
-            Keep playing
+            {t("keep_playing")}
           </button>
           <button type="button" className="btn-quiet w-full" onClick={go}>
-            Leave
+            {t("leave")}
           </button>
         </div>
       </Modal>
@@ -155,87 +157,81 @@ export function QuitButton({
 }
 
 export function BarLegend({ onPaper = false }: { onPaper?: boolean }) {
-  const strong = { color: onPaper ? "var(--wood-1)" : "var(--paper-5)" };
+  const t = useT();
+  const strong = { color: onPaper ? "var(--wood-1)" : "var(--paper-5)", fontWeight: 700 };
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center gap-3" style={{ fontSize: 15 }}>
         <span className="bar exact" />
-        <span>
-          Right digit, <b style={strong}>right slot</b>
-        </span>
+        <span style={strong}>{t("legend_exact")}</span>
       </div>
       <div className="flex items-center gap-3" style={{ fontSize: 15 }}>
         <span className="bar near" />
-        <span>
-          Right digit, <b style={strong}>wrong slot</b>
-        </span>
+        <span style={strong}>{t("legend_near")}</span>
       </div>
       <div className="flex items-center gap-3" style={{ fontSize: 15 }}>
         <span className="bar absent" />
-        <span>Not in the code</span>
+        <span>{t("legend_absent")}</span>
       </div>
     </div>
   );
 }
 
-/**
- * The three margin cards. Rendered as a sidebar on desktop and inside a
- * modal on narrow screens, because the shell never lets the page scroll —
- * anything stacked below the board would simply be unreachable.
- */
+/** Cross digits off as you rule them out. The player's own notes: the
+ *  game never fills them in. */
+export function NotesPad({
+  ruledOut, onToggle, onPaper = false,
+}: { ruledOut?: Record<string, boolean>; onToggle: (d: string) => void; onPaper?: boolean }) {
+  const t = useT();
+  return (
+    <>
+      <p className={`eyebrow mb-3 ${onPaper ? "on-paper" : ""}`}>{t("ruled_out")}</p>
+      <div className="grid grid-cols-5 gap-1.5">
+        {DIGITS.map((d) => (
+          <button key={d} type="button" className="note" aria-pressed={Boolean(ruledOut?.[d])}
+            aria-label={t("rule_out", { d })} onClick={() => onToggle(d)}>
+            {d}
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+/** The desktop margin: the legend and the notes, nothing to read through. */
 export function RailCards({
   ruledOut,
   onToggle,
-  inModal,
 }: {
   ruledOut?: Record<string, boolean>;
   onToggle?: (d: string) => void;
-  inModal?: boolean;
 }) {
   return (
     <>
-      <div className={inModal ? "mb-4" : "frame card p-4"}>
-        <p className="eyebrow mb-3" id="guide-title">
-          Reading the bars
-        </p>
+      <div className="frame card p-4">
         <BarLegend />
-        <p className="copy mt-3" style={{ fontSize: 13.5, color: "var(--paper-3)" }}>
-          Four bars, always &mdash; two over two. They are a <b style={{ color: "var(--brass-4)" }}>tally</b>,
-          not a map: nothing about where a bar sits tells you which digit it means.
-        </p>
       </div>
-
-      <div className={inModal ? "parchment mb-4 p-4" : "parchment card p-4"}>
-        <p className="eyebrow on-paper mb-3">The rule</p>
-        <p className="copy" style={{ fontSize: 14.5 }}>
-          The code is <b>four different digits</b> and it <b>never starts with zero</b>. That is
-          why some keys grey out as you type.
-        </p>
-      </div>
-
       {onToggle && (
-        <div className={inModal ? "parchment p-4" : "parchment card p-4"}>
-          <p className="eyebrow on-paper mb-3">Ruled out</p>
-          <div className="grid grid-cols-5 gap-1.5">
-            {DIGITS.map((d) => (
-              <button
-                key={d}
-                type="button"
-                className="note"
-                aria-pressed={Boolean(ruledOut?.[d])}
-                aria-label={`Rule out ${d}`}
-                onClick={() => onToggle(d)}
-              >
-                {d}
-              </button>
-            ))}
-          </div>
-          <p className="copy mt-2.5" style={{ fontSize: 13 }}>
-            Cross off digits you have eliminated. These are your notes &mdash; the game never
-            fills them in for you.
-          </p>
+        <div className="parchment card p-4">
+          <NotesPad ruledOut={ruledOut} onToggle={onToggle} onPaper />
         </div>
       )}
     </>
+  );
+}
+
+/** A burst of pixels for a win. Purely decorative. */
+export function Burst() {
+  const bits = Array.from({ length: 18 }, (_, i) => {
+    const angle = (i / 18) * Math.PI * 2;
+    const reach = 70 + ((i * 37) % 60);
+    return { bx: Math.round(Math.cos(angle) * reach), by: Math.round(Math.sin(angle) * reach * 0.8 - 20) };
+  });
+  return (
+    <span className="burst" aria-hidden="true">
+      {bits.map((b, i) => (
+        <i key={i} style={{ "--bx": `${b.bx}px`, "--by": `${b.by}px`, animationDelay: `${(i % 3) * 60}ms` } as React.CSSProperties} />
+      ))}
+    </span>
   );
 }

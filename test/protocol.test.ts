@@ -9,11 +9,11 @@ test("garbage never becomes a message", () => {
 });
 
 test("join is normalised and bounded", () => {
-  const m = parseClientMessage(JSON.stringify({ t: "join", v: 2, room: "abcde", name: "  Al\u0000ice  ", create: "yes" }));
-  assert.deepEqual(m, { t: "join", v: 2, room: "abcde", name: "Alice", token: undefined, resume: undefined, create: false });
-  assert.equal(parseClientMessage(JSON.stringify({ t: "join", v: 2, room: "ABCDE", name: "x", token: 5 })), null);
-  assert.equal(parseClientMessage(JSON.stringify({ t: "join", v: 2, room: "ABCDE", name: "x", resume: "maybe" })), null);
-  assert.equal(parseClientMessage(JSON.stringify({ t: "join", v: 2, room: "ABCDE", name: "x", token: "a".repeat(65) })), null);
+  const m = parseClientMessage(JSON.stringify({ t: "join", v: 3, room: "abcde", name: "  Al\u0000ice  ", create: "yes" }));
+  assert.deepEqual(m, { t: "join", v: 3, room: "abcde", name: "Alice", token: undefined, resume: undefined, create: false });
+  assert.equal(parseClientMessage(JSON.stringify({ t: "join", v: 3, room: "ABCDE", name: "x", token: 5 })), null);
+  assert.equal(parseClientMessage(JSON.stringify({ t: "join", v: 3, room: "ABCDE", name: "x", resume: "maybe" })), null);
+  assert.equal(parseClientMessage(JSON.stringify({ t: "join", v: 3, room: "ABCDE", name: "x", token: "a".repeat(65) })), null);
 });
 
 test("codes must be four one-character strings", () => {
@@ -28,6 +28,14 @@ test("codes must be four one-character strings", () => {
 
 test("extra fields are dropped, not passed through", () => {
   assert.deepEqual(parseClientMessage('{"t":"rematch","seat":"host","score":500}'), { t: "rematch" });
+});
+
+test("chat is cleaned, capped and never empty", () => {
+  assert.deepEqual(parseClientMessage('{"t":"chat","text":"  hi   there "}'), { t: "chat", text: "hi there" });
+  assert.equal(parseClientMessage('{"t":"chat","text":"   "}'), null);
+  assert.equal(parseClientMessage('{"t":"chat","text":42}'), null);
+  const long = parseClientMessage(JSON.stringify({ t: "chat", text: "x".repeat(500) }));
+  assert.equal(long?.t === "chat" && long.text.length, 60);
 });
 
 test("cleanName strips control and bidi characters and caps length", () => {

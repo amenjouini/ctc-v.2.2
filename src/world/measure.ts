@@ -34,10 +34,12 @@ function shadowReach(cs: CSSStyleDeclaration) {
     const x = parseFloat(m[1]);
     const y = parseFloat(m[2]);
     const blur = parseFloat(m[3] ?? "0");
-    out.left = Math.max(out.left, blur - x);
-    out.right = Math.max(out.right, blur + x);
-    out.top = Math.max(out.top, blur - y);
-    out.bottom = Math.max(out.bottom, blur + y);
+    // A blurred shadow is light (the title's glow), not part of the letter.
+    if (blur > 0) continue;
+    out.left = Math.max(out.left, -x);
+    out.right = Math.max(out.right, x);
+    out.top = Math.max(out.top, -y);
+    out.bottom = Math.max(out.bottom, y);
   }
   return out;
 }

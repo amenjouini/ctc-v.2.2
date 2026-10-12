@@ -1,7 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCritters } from "@/hooks/useCritters";
+import { useSettings } from "@/hooks/useSettings";
+import { useT } from "@/i18n";
+import { CRITTER_FOR } from "@/hooks/useCritters";
 import type { Theme } from "@/hooks/useTheme";
-import { rehome, spawnActor, step, type Actor } from "@/world/actor";
+import { TALK_SECONDS, hush, rehome, spawnActor, speak, step, type Actor } from "@/world/actor";
 import { measureWorld } from "@/world/measure";
 import { ART, SPRITES, type CritterKind } from "@/world/sprites";
 import { buildWorld, type WorldInput } from "@/world/world";
@@ -56,14 +59,24 @@ const Crab = () => (
     <rect x="0" y="5" width="2" height="2" fill="#e8502c" />
     <rect x="0" y="2" width="2" height="3" fill="#ff7a50" />
 <g className="leg-l">
-    <rect x="4" y="10" width="2" height="2" fill="#d9401f" />
-    <rect x="2" y="12" width="4" height="2" fill="#b32e14" />
-</g>
-
-<g className="leg-r">
-    <rect x="10" y="10" width="2" height="2" fill="#d9401f" />
-    <rect x="10" y="12" width="4" height="2" fill="#b32e14" />
-</g>
+      <rect x="4" y="10" width="1" height="1" fill="#d9401f" />
+      <rect x="3" y="11" width="1" height="1" fill="#d9401f" />
+      <rect x="2" y="12" width="1" height="2" fill="#b32e14" />
+      <rect x="6" y="10" width="1" height="2" fill="#d9401f" />
+      <rect x="5" y="12" width="1" height="2" fill="#b32e14" />
+    </g>
+    <g className="leg-r">
+      <rect x="11" y="10" width="1" height="1" fill="#d9401f" />
+      <rect x="12" y="11" width="1" height="1" fill="#d9401f" />
+      <rect x="13" y="12" width="1" height="2" fill="#b32e14" />
+      <rect x="9" y="10" width="1" height="2" fill="#d9401f" />
+      <rect x="10" y="12" width="1" height="2" fill="#b32e14" />
+    </g>
+    {/* the outermost pair, tucked up beside the shell */}
+    <rect x="1" y="8" width="1" height="1" fill="#d9401f" />
+    <rect x="0" y="9" width="1" height="2" fill="#b32e14" />
+    <rect x="14" y="8" width="1" height="1" fill="#d9401f" />
+    <rect x="15" y="9" width="1" height="2" fill="#b32e14" />
   </svg>
 );
 
@@ -131,6 +144,7 @@ interface Els {
   flip: HTMLDivElement;
   thread: HTMLSpanElement;
   fx: HTMLDivElement;
+  say: HTMLDivElement;
 }
 
 /**
@@ -138,7 +152,7 @@ interface Els {
  * bottom of its image) lands on the actor's position; positions snap to
  * the sprite's own pixel grid so the art never smears.
  */
-function paint(els: Els, a: Actor, input: WorldInput) {
+function paint(els: Els, a: Actor, input: WorldInput, saying: boolean) {
   const unit = input.unit;
   const s = unit / ART;
   const meta = SPRITES[a.kind];
@@ -176,6 +190,44 @@ function paint(els: Els, a: Actor, input: WorldInput) {
     thread.style.display = "none";
   }
 
+  // The speech bubble rises from the head; its big part is kept on screen.
+  if (saying && a.visible) {
+    // the top of the head, wherever the body has been turned to
+    let hx = X(a.x);
+    let hy = top + meta.top * s;
+    if (a.angle && a.pivot) {
+      const px = X(a.pivot.x);
+      const py = Y(a.pivot.y);
+      const r = (a.angle * Math.PI) / 180;
+      const dx = hx - px;
+      const dy = hy - py;
+      hx = px + dx * Math.cos(r) - dy * Math.sin(r);
+      hy = py + dx * Math.sin(r) + dy * Math.cos(r);
+    }
+    els.say.style.display = "block";
+    els.say.style.transform = `translate3d(${Math.round(hx)}px, ${Math.round(hy)}px, 0)`;
+    const big = els.say.lastElementChild as HTMLElement | null;
+    if (big) {
+      // The balloon rises on the side the critter faces — unless it would
+      // not fit there, then on the other. The two small dots lead towards
+      // it (CSS mirrors them by data-side) and its tail comes down onto the
+      // bigger dot, wherever the balloon had to be nudged to stay on screen.
+      const w = big.offsetWidth;
+      const fits = (side: number) => (side > 0 ? hx - 6 + w <= input.stage.width - 8 : hx + 6 - w >= 8);
+      const side = fits(a.facing) ? a.facing : fits(-a.facing) ? -a.facing : a.facing;
+      els.say.dataset.side = String(side);
+      const dot = side > 0 ? 11 : -11; // centre of the bigger dot, from the head
+      const want = side > 0 ? -6 : 6 - w;
+      const left = Math.round(Math.max(8 - hx, Math.min(input.stage.width - 8 - w - hx, want)));
+      big.style.left = `${left}px`;
+      big.style.setProperty("--tail-x", `${Math.round(Math.max(8, Math.min(w - 22, dot - left - 7)))}px`);
+      // and below the top of the screen: it slides down beside the critter
+      big.style.bottom = `${Math.round(Math.min(40, hy - 10 - big.offsetHeight))}px`;
+    }
+  } else {
+    els.say.style.display = "none";
+  }
+
   // One-shot effects: a puff of smoke, a burst of sparkles.
   for (const f of a.fx.splice(0)) {
     const el = document.createElement("div");
@@ -187,26 +239,48 @@ function paint(els: Els, a: Actor, input: WorldInput) {
   }
 }
 
+/** What the rival just said, for a critter to deliver. */
+export interface Saying {
+  id: number;
+  text: string;
+}
+
 /**
  * The critters' stage for one board. The board is the table; everything
  * tagged data-world on the page is the rest of the world. The stage is a
  * fixed layer above the page chrome: the boxes and the title are scenery
  * behind the critters, so they walk and jump in front of them, and stand
  * on top of them. Pointer events pass straight through, so a critter never
- * gets in the way of a tap.
+ * gets in the way of a tap — except its speech bubble, which is tapped away.
+ *
+ * `say` summons a critter to deliver a message; `onHeard` fires when the
+ * bubble is tapped (or the critter gives up holding it).
  */
-export function Critters({ theme }: { theme: Theme }) {
+export function Critters({ theme, say, onHeard }: { theme: Theme; say?: Saying | null; onHeard?: (id: number) => void }) {
   const stage = useRef<HTMLDivElement>(null);
   const actorEl = useRef<HTMLDivElement>(null);
   const flipEl = useRef<HTMLDivElement>(null);
   const threadEl = useRef<HTMLSpanElement>(null);
   const fxEl = useRef<HTMLDivElement>(null);
-  const { spawn, done } = useCritters(theme);
+  const sayEl = useRef<HTMLDivElement>(null);
+  const actorRef = useRef<Actor | null>(null);
+  const { critters } = useSettings();
+  const t = useT();
+  const [onStage, setOnStage] = useState(false);
+  const { spawn, done } = useCritters(theme, critters, say && !onStage ? { key: say.id, routine: "speak" } : null);
+  const sayRef = useRef({ say, onHeard });
+  sayRef.current = { say, onHeard };
+
+  // A message for a critter that is already here: it delivers it on the spot.
+  const sayId = say?.id;
+  useEffect(() => {
+    if (sayId !== undefined && actorRef.current) speak(actorRef.current);
+  }, [sayId]);
 
   useEffect(() => {
     if (!spawn) return;
     const table = stage.current?.parentElement;
-    const els = { actor: actorEl.current!, flip: flipEl.current!, thread: threadEl.current!, fx: fxEl.current! };
+    const els = { actor: actorEl.current!, flip: flipEl.current!, thread: threadEl.current!, fx: fxEl.current!, say: sayEl.current! };
     let input = table ? measureWorld(table) : null;
     let world = input ? buildWorld(input) : null;
     const actor = world ? spawnActor(world, spawn.kind, Math.random, spawn.routine) : null;
@@ -214,6 +288,10 @@ export function Critters({ theme }: { theme: Theme }) {
       done(false);
       return;
     }
+    actorRef.current = actor;
+    setOnStage(true);
+    let heldId: number | undefined;
+    let held = 0;
     let sig = signature(input);
     let raf = 0;
     let finished = false;
@@ -225,6 +303,9 @@ export function Critters({ theme }: { theme: Theme }) {
       cancelAnimationFrame(raf);
       els.actor.style.visibility = "hidden";
       els.thread.style.display = "none";
+      els.say.style.display = "none";
+      actorRef.current = null;
+      setOnStage(false);
       done(true);
     };
 
@@ -247,12 +328,22 @@ export function Critters({ theme }: { theme: Theme }) {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       const alive = step(world!, actor, dt, Math.random);
-      paint(els, actor, input!);
+      const pending = sayRef.current.say;
+      paint(els, actor, input!, Boolean(pending));
+      // Held up long enough without being tapped: that counts as
+      // delivered, so nobody is summoned for it again.
+      if (pending?.id !== heldId) {
+        heldId = pending?.id;
+        held = 0;
+      } else if (pending && (held += dt) > TALK_SECONDS) {
+        hush(actor);
+        sayRef.current.onHeard?.(pending.id);
+      }
       if (debug) debug.__ctcCritter = { world, actor, input };
       if (!alive) return finish();
       raf = requestAnimationFrame(tick);
     };
-    paint(els, actor, input);
+    paint(els, actor, input, Boolean(sayRef.current.say));
     raf = requestAnimationFrame(tick);
 
     const ro = new ResizeObserver(remeasure);
@@ -264,25 +355,69 @@ export function Critters({ theme }: { theme: Theme }) {
 
     return () => {
       finished = true;
+      actorRef.current = null;
+      setOnStage(false);
       cancelAnimationFrame(raf);
       ro.disconnect();
       window.clearInterval(poll);
       window.removeEventListener("resize", remeasure);
       els.thread.style.display = "none";
       els.actor.style.visibility = "hidden";
+      els.say.style.display = "none";
     };
   }, [spawn, done]);
 
   const Sprite = spawn ? ART_FOR[spawn.kind] : null;
   return (
-    <div className="critter-stage" ref={stage} aria-hidden="true">
+    <div className="critter-stage" ref={stage} aria-hidden={say ? undefined : "true"}>
       <span className="thread" ref={threadEl} />
       <div className="actor" ref={actorEl} style={{ visibility: "hidden" }}>
         <div className={`actor-flip gait-${spawn?.kind ?? "owl"}`} ref={flipEl}>
           {Sprite && <Sprite />}
         </div>
       </div>
+      {/* a small dot, a bigger dot, then the balloon. A following message
+          only changes the words: nothing pops in again. */}
+      <div className="say" ref={sayEl} style={{ display: "none" }}>
+        <i className="say-dot d1" />
+        <i className="say-dot d2" />
+        <button type="button" className="say-bubble" aria-label={say ? t("bubble_label", { text: say.text }) : undefined}
+          onClick={() => {
+            if (!say) return;
+            if (actorRef.current) hush(actorRef.current);
+            onHeard?.(say.id);
+          }}>
+          <span>{say?.text}</span>
+        </button>
+      </div>
       <div ref={fxEl} />
+    </div>
+  );
+}
+
+/**
+ * A win: the theme's critter jumps for joy on top of the result card while
+ * fireworks go off around it. With characters switched off, just fireworks.
+ */
+export function Cheer({ theme }: { theme: Theme }) {
+  const { critters } = useSettings();
+  const kind = CRITTER_FOR[theme];
+  const Sprite = ART_FOR[kind];
+  const rocket = (n: number) =>
+    Array.from({ length: n }, (_, i) => {
+      const angle = (i / n) * Math.PI * 2;
+      return <i key={i} style={{ "--bx": `${Math.round(Math.cos(angle) * 46)}px`, "--by": `${Math.round(Math.sin(angle) * 46)}px` } as React.CSSProperties} />;
+    });
+  return (
+    <div className="cheer" aria-hidden="true">
+      <span className="firework f1">{rocket(12)}</span>
+      <span className="firework f2">{rocket(12)}</span>
+      <span className="firework f3">{rocket(12)}</span>
+      {critters && (
+        <div className="cheer-critter">
+          <div className={`actor-flip gait-${kind}`}><Sprite /></div>
+        </div>
+      )}
     </div>
   );
 }

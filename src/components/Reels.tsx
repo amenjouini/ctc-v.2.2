@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { CODE_LENGTH } from "@shared/engine";
+import { useT } from "@/i18n";
 
 interface Props {
   slots: string[];
@@ -14,8 +15,9 @@ interface Props {
  * transform was wrong. Visibility must never depend on an animation.
  */
 export function Reels({ slots, active, locked, onFocusSlot }: Props) {
+  const t = useT();
   return (
-    <div className="flex gap-3 justify-center" role="group" aria-label="Your guess, four digits">
+    <div className="flex gap-3 justify-center" role="group" aria-label={t("reels")}>
       {Array.from({ length: CODE_LENGTH }).map((_, i) => {
         const value = slots[i] ?? "";
         return (
@@ -24,7 +26,7 @@ export function Reels({ slots, active, locked, onFocusSlot }: Props) {
             type="button"
             className="reel"
             aria-current={!locked && i === active ? "true" : "false"}
-            aria-label={`Slot ${i + 1}${value ? `, ${value}` : ", empty"}`}
+            aria-label={value ? t("slot_filled", { n: i + 1, d: value }) : t("slot_empty", { n: i + 1 })}
             onClick={() => onFocusSlot?.(i)}
             disabled={locked}
           >

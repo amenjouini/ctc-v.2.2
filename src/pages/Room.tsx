@@ -1,18 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { describe, isRoomCode, makeRoomCode, normaliseRoom, spell, type Code, type Verdict } from "@shared/engine";
+import { isRoomCode, makeRoomCode, normaliseRoom, type Code, type Verdict } from "@shared/engine";
 import { NAME_MAX, cleanName, type RoomView } from "@shared/protocol";
 import { BarMarks } from "@/components/BarMarks";
-import { Critters } from "@/components/Critters";
+import { Cheer, Critters } from "@/components/Critters";
 import { Ledger } from "@/components/GuessRow";
 import { Keypad } from "@/components/Keypad";
 import { Masthead, RoomBadge, Toast } from "@/components/Chrome";
-import { Modal, QuitButton, RailCards } from "@/components/Rail";
+import { Modal, QuitButton } from "@/components/Rail";
+import { ChatIcon, ChatPanel } from "@/components/Chat";
 import { Reels } from "@/components/Reels";
 import { useDraft, useGameKeys } from "@/hooks/useDraft";
 import { readName, saveName } from "@/hooks/usePlayerName";
 import { hasSeat, useRoom, type RoomError } from "@/hooks/useRoom";
 import type { Theme } from "@/hooks/useTheme";
+import { errorText, triesText, useLang, useT, verdictText, type Key, type T } from "@/i18n";
 
 /** Their best result so far — the pressure gauge. Deliberately the BEST,
  *  not the latest: that is the number that tells you how close you are to
@@ -28,30 +30,22 @@ function bestThreat(turns: { verdict: Verdict }[]): Verdict {
   );
 }
 
-/** Spelled out, like every verdict — a figure beside a code reads as a digit. */
-function threatText(v: Verdict): string {
-  const exact = v.exact === 0 ? "None" : spell(v.exact);
-  return v.misplaced > 0
-    ? `${exact} in the right slot, ${spell(v.misplaced).toLowerCase()} elsewhere.`
-    : `${exact} in the right slot.`;
-}
-
-function statusLine(view: RoomView | null, link: string): { text: string; tone: "turn" | "wait" | "alert" } {
-  if (link === "lost") return { text: "Connection lost — reconnecting…", tone: "alert" };
-  if (!view) return { text: "Finding the table…", tone: "wait" };
-  const them = view.opponent?.name ?? "your rival";
+function statusLine(t: T, view: RoomView | null, link: string): { text: string; tone: "turn" | "wait" | "alert" } {
+  if (link === "lost") return { text: t("st_lost"), tone: "alert" };
+  if (!view) return { text: t("st_finding"), tone: "wait" };
+  const them = view.opponent?.name ?? t("rival");
   switch (view.phase) {
     case "lobby":
-      return { text: "Waiting for a rival to join…", tone: "wait" };
+      return { text: t("st_lobby"), tone: "wait" };
     case "setup":
-      if (!view.you.ready) return { text: `Set a secret code for ${them} to crack`, tone: "turn" };
-      return { text: `Locked in. Waiting for ${them}…`, tone: "wait" };
+      if (!view.you.ready) return { text: t("st_set"), tone: "turn" };
+      return { text: t("st_waiting", { name: them }), tone: "wait" };
     case "play":
       return view.turn === view.seat
-        ? { text: "Your turn — fire a guess", tone: "turn" }
-        : { text: `${them} is guessing…`, tone: "wait" };
+        ? { text: t("st_your_turn"), tone: "turn" }
+        : { text: t("st_their_turn", { name: them }), tone: "wait" };
     case "over":
-      return { text: "Match over", tone: "wait" };
+      return { text: t("st_over"), tone: "wait" };
   }
 }
 
@@ -60,6 +54,8 @@ export function Room({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
   const room = normaliseRoom(code);
   const validRoom = isRoomCode(room);
   const nav = useNavigate();
+  const t = useT();
+  const lang = useLang();
   const location = useLocation();
   const create = Boolean((location.state as { create?: boolean } | null)?.create);
 
@@ -73,7 +69,12 @@ export function Room({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
   const draft = useDraft();
 
   const [tab, setTab] = useState<"mine" | "theirs">("mine");
-  const [guide, setGuide] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  /** the newest message of theirs that has been read (bubble tapped, or
+   *  the messages opened); anything newer is waiting to be delivered */
+  const [readUpTo, setReadUpTo] = useState<number | null>(null);
+  /** your own secret stays behind its lock until you tap it */
+  const [codeShown, setCodeShown] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [ruledOut, setRuledOut] = useState<Record<string, boolean>>({});
@@ -81,7 +82,7 @@ export function Room({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
 
   const phase = view?.phase ?? "lobby";
   const opp = view?.opponent ?? null;
-  const them = opp?.name ?? "your rival";
+  const them = opp?.name ?? t("rival");
   const myTurn = Boolean(view && phase === "play" && view.turn === view.seat);
   const settingSecret = Boolean(view && phase === "setup" && !view.you.ready);
   const canCompose = settingSecret || phase === "play";
@@ -115,7 +116,7 @@ export function Room({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
       lastOpp.current = opp.name;
       setNotice(null);
     } else if (lastOpp.current) {
-      setNotice(`${lastOpp.current} left the table.`);
+      setNotice(t("left_notice", { name: lastOpp.current }));
       lastOpp.current = null;
     }
   }, [opp]);
@@ -137,21 +138,21 @@ export function Room({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
   const [toast, setToast] = useState<string | null>(null);
   useEffect(() => {
     if (!toast) return;
-    const t = window.setTimeout(() => setToast(null), 1800);
-    return () => window.clearTimeout(t);
+    const timer = window.setTimeout(() => setToast(null), 1800);
+    return () => window.clearTimeout(timer);
   }, [toast]);
 
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(share);
-      setToast("Link copied");
+      setToast(t("link_copied"));
     } catch {
-      setToast("Copy the link from the box below");
+      setToast(t("link_manual"));
     }
   };
   const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
   const nativeShare = () =>
-    navigator.share({ title: "Crack the Code", text: `Join my table: ${room}`, url: share }).catch(() => undefined);
+    navigator.share({ title: "Crack the Code", text: t("share_text", { code: room }), url: share }).catch(() => undefined);
 
   const takeSeat = () => {
     if (!cleanName(name)) return;
@@ -159,7 +160,7 @@ export function Room({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
     setSeated(true);
   };
 
-  const status = statusLine(view, link);
+  const status = statusLine(t, view, link);
   const threat = bestThreat(view?.theirHunt ?? []);
   const lastMine = view?.yourHunt[view.yourHunt.length - 1];
   const lastTheirs = view?.theirHunt[view.theirHunt.length - 1];
@@ -177,14 +178,14 @@ export function Room({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
     if (!seated) {
       return (
         <div className="frame panel">
-          <p className="eyebrow mb-2">Table {room}</p>
-          <h2 className="title mb-3" style={{ fontSize: 16 }}>Take a seat</h2>
-          <p className="copy muted mb-4">Pick the name your rival will see.</p>
+          <p className="eyebrow mb-2">{t("table_n", { code: room })}</p>
+          <h2 className="title mb-3" style={{ fontSize: 16 }}>{t("take_seat")}</h2>
+          <p className="copy muted mb-4">{t("pick_name")}</p>
           <form onSubmit={(e) => { e.preventDefault(); takeSeat(); }}>
-            <label className="field-label" htmlFor="seat-name">Your name</label>
+            <label className="field-label" htmlFor="seat-name">{t("your_name")}</label>
             <input id="seat-name" className="field field-text mb-3 w-full" maxLength={NAME_MAX} autoFocus
               autoComplete="nickname" enterKeyHint="go" value={name} onChange={(e) => setName(e.target.value)} />
-            <button type="submit" className="btn btn-big w-full" disabled={!cleanName(name)}>Sit down</button>
+            <button type="submit" className="btn btn-big w-full" disabled={!cleanName(name)}>{t("sit_down")}</button>
           </form>
         </div>
       );
@@ -192,49 +193,68 @@ export function Room({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
     if (!view) {
       return (
         <div className="frame panel text-center" aria-busy="true">
-          <p className="eyebrow mb-3">Table {room}</p>
+          <p className="eyebrow mb-3">{t("table_n", { code: room })}</p>
           <p className="loading-dots" aria-hidden="true"><i /><i /><i /></p>
-          <p className="copy muted mt-3">{link === "lost" ? "The server is not answering. Still trying…" : "Finding the table…"}</p>
+          <p className="copy muted mt-3">{link === "lost" ? t("server_silent") : t("st_finding")}</p>
         </div>
       );
     }
     if (phase === "lobby") {
       return (
         <div className="frame panel text-center">
-          {notice && <p className="notice mb-4">{notice} The table is open for someone new.</p>}
-          <p className="eyebrow mb-3">Share this code with your friend</p>
+          {notice && <p className="notice mb-4">{notice}</p>}
+          <p className="eyebrow mb-3">{t("share_code")}</p>
           <p className="title room-code mb-4">{room}</p>
           <div className="mb-3 grid gap-2 sm:grid-cols-2">
-            <button type="button" className="btn btn-big" onClick={copy}>Copy link</button>
+            <button type="button" className="btn btn-big" onClick={copy}>{t("copy_link")}</button>
             {canShare
-              ? <button type="button" className="btn-wood" onClick={nativeShare}>Share&hellip;</button>
-              : <input className="field field-text w-full" readOnly value={share} aria-label="Table link"
+              ? <button type="button" className="btn-wood" onClick={nativeShare}>{t("share")}</button>
+              : <input className="field field-text w-full" readOnly value={share} aria-label={t("table_link")}
                   onFocus={(e) => e.currentTarget.select()} />}
           </div>
-          <p className="copy muted" style={{ fontSize: 14 }}>
-            They can open the link, or type <b className="text-[var(--paper-5)]">{room}</b> on the front page.
-            You are playing as <b className="text-[var(--paper-5)]">{view.you.name}</b>.
-          </p>
+          <p className="copy muted" style={{ fontSize: 14 }}>{t("lobby_hint", { code: room, name: view.you.name })}</p>
         </div>
       );
     }
     return null;
   })();
 
-  const theirTabLabel = opp ? `${opp.name}’s hunt` : "Their hunt";
+  const chat = view?.chat ?? [];
+  const newest = chat.length ? chat[chat.length - 1].id : 0;
+  // Whatever was said before this page loaded is history, not news.
+  useEffect(() => {
+    if (view && readUpTo === null) setReadUpTo(newest);
+  }, [view, readUpTo, newest]);
+  // The newest thing they said that has not been read yet.
+  const unheard = readUpTo === null ? undefined : [...chat].reverse().find((l) => !l.mine && l.id > readUpTo);
+  const markRead = useCallback((id: number) => setReadUpTo((r) => Math.max(r ?? 0, id)), []);
+  const seenAll = useCallback(() => markRead(newest), [markRead, newest]);
+  const chatPanel = opp ? <ChatPanel lines={chat} them={opp.name} onSend={r.say} onSeen={seenAll} /> : null;
+
+  const theirTabLabel = opp ? t("name_hunt", { name: opp.name }) : t("their_hunt");
+  const leaveWarning = t("leave_warning", { name: them });
 
   return (
     <div className="shell relative mx-auto w-full max-w-[1160px]">
-      <Masthead theme={theme} setTheme={setTheme} right={
+      <Masthead theme={theme} setTheme={setTheme}
+        menuExtra={
+          <>
+            <section className="menu-section sm:hidden">
+              <p className="eyebrow mb-3">{t("table_n", { code: room })}</p>
+              <QuitButton className="btn-quiet w-full" label={t("leave_table")} confirm={inMatch} onLeave={r.leave}
+                warning={leaveWarning} />
+            </section>
+          </>
+        }
+        right={
         <>
           <RoomBadge code={room} link={fatal ? "closed" : link} />
-          {!board && <button type="button" className="btn-wood lg:hidden" data-world="box" data-world-id="guide" onClick={() => setGuide(true)}>Guide</button>}
           <QuitButton worldBox confirm={inMatch} onLeave={r.leave}
-            warning={`You will give up your seat, and ${them} will be left waiting at the table.`} />
+            warning={leaveWarning} />
         </>
       } />
 
-      <Toast message={toast ?? (error && !error.fatal ? error.reason : null)} tone={toast ? "info" : "warn"} />
+      <Toast message={toast ?? (error && !error.fatal ? errorText(t, error.code, error.reason) : null)} tone={toast ? "info" : "warn"} />
 
       {board ?? (
         <>
@@ -242,64 +262,77 @@ export function Room({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
             <div className="min-w-0">
               <p className="eyebrow status-text" aria-live="polite">{status.text}</p>
               {opp && !opp.connected && link === "live" && (
-                <p className="status-sub">{opp.name} dropped out. Holding their seat for a few minutes.</p>
+                <p className="status-sub">{t("dropped", { name: opp.name })}</p>
               )}
             </div>
             <div className="status-gauges">
-              <div className="gauge"><span>Round</span><b>{view?.round ?? 1}</b></div>
+              <div className="gauge"><span className="max-sm:hidden">{t("round")}</span><span className="sm:hidden">{t("round_short")}</span><b>{view?.round ?? 1}</b></div>
               {view?.yourSecret && (
-                <div className="gauge"><span className="gauge-long">Your code</span><span className="gauge-short">Code</span><b style={{ color: "var(--brass-4)" }}>{view.yourSecret.join("")}</b></div>
+                <button type="button" className="gauge lock" aria-pressed={codeShown}
+                  aria-label={codeShown ? t("hide_code") : t("show_your_code")} onClick={() => setCodeShown((v) => !v)}>
+                  <svg viewBox="0 0 7 8" aria-hidden="true" shapeRendering="crispEdges" fill="var(--brass-4)">
+                    {codeShown
+                      ? <><rect x="1" y="0" width="3" height="1" /><rect x="0" y="1" width="1" height="2" /><rect x="4" y="1" width="1" height="1" /></>
+                      : <><rect x="2" y="0" width="3" height="1" /><rect x="1" y="1" width="1" height="2" /><rect x="5" y="1" width="1" height="2" /></>}
+                    <rect x="0" y="3" width="7" height="5" />
+                    <rect x="3" y="5" width="1" height="2" fill="var(--ink)" />
+                  </svg>
+                  <b style={{ color: "var(--brass-4)" }}>{codeShown ? view.yourSecret.join("") : "••••"}</b>
+                </button>
+              )}
+              {opp && (
+                <button type="button" className="gauge msg-btn" aria-label={unheard ? t("messages_new") : t("messages")}
+                  onClick={() => setChatOpen(true)}>
+                  <ChatIcon />
+                  {unheard && <span className="tab-dot" />}
+                </button>
               )}
               {phase === "over" && reviewing && (
-                <button type="button" className="btn" onClick={() => setReviewing(false)}>Results</button>
+                <button type="button" className="btn" onClick={() => setReviewing(false)}>{t("results")}</button>
               )}
             </div>
           </div>
 
-          <div className="board-tabs lg:hidden" role="tablist" aria-label="Boards">
-            {(["mine", "theirs"] as const).map((t) => (
-              <button key={t} type="button" role="tab" aria-selected={t === tab}
-                className={t === tab ? "btn" : "btn-wood"} onClick={() => setTab(t)}
-                data-world="box" data-world-id={`tab-${t}`}>
-                <span className="truncate">{t === "mine" ? "Your hunt" : theirTabLabel}</span>
-                {t === "theirs" && unseen && <span className="tab-dot" aria-label="new guess" />}
+          <div className="board-tabs lg:hidden" role="tablist" aria-label={t("boards")}>
+            {(["mine", "theirs"] as const).map((which) => (
+              <button key={which} type="button" role="tab" aria-selected={which === tab}
+                className={which === tab ? "btn" : "btn-wood"} onClick={() => setTab(which)}
+                data-world="box" data-world-id={`tab-${which}`}>
+                <span className="truncate">{which === "mine" ? t("your_hunt") : theirTabLabel}</span>
+                {which === "theirs" && unseen && <span className="tab-dot" aria-label="new guess" />}
               </button>
             ))}
           </div>
 
           <main className="shell-stage stage-room" data-tab={tab}>
-            <section className="frame board board-mine" aria-label="Your hunt">
-              <Critters theme={theme} />
+            <section className="frame board board-mine" aria-label={t("your_hunt")}>
+              <Critters theme={theme} say={unheard && !chatOpen ? unheard : null} onHeard={markRead} />
               <div className="board-log">
                 <div className="board-head">
-                  <p className="eyebrow">{settingSecret ? "Your secret" : "Your hunt for their code"}</p>
-                  <p className="eyebrow">{view?.yourHunt.length ?? 0} sent</p>
+                  <p className="eyebrow">{settingSecret ? t("your_secret") : t("your_hunt")}</p>
+                  <p className="eyebrow">{triesText(lang, view?.yourHunt.length ?? 0)}</p>
                 </div>
 
                 <Ledger turns={view?.yourHunt ?? []} onLoad={phase === "play" ? draft.load : undefined}
-                  label="Your guesses" empty={
-                    settingSecret ? <p>Choose four different digits for <b className="text-[var(--paper-4)]">{them}</b> to crack.<br />It cannot start with zero.</p>
-                    : phase === "setup" ? <p>Your code is locked in.<br />Your guesses at theirs will land here.</p>
-                    : <p>Your guesses at their secret<br />will appear here.</p>
+                  label={t("your_guesses")} empty={
+                    settingSecret ? <p className="eyebrow">{t("four_digits")}</p>
+                    : phase === "setup" ? <p className="eyebrow">{t("locked_in")}</p>
+                    : <p className="eyebrow">{t("your_guesses")}</p>
                   } />
 
-                <p className="parchment readout" aria-live="polite">
-                  {lastMine ? describe(lastMine.verdict)
-                    : settingSecret ? "Only the server ever sees your secret."
-                    : myTurn ? "You open this round. Make it count."
-                    : phase === "play" ? "Line up your first guess while you wait."
-                    : "Waiting for both codes."}
+                <p className="readout sr-only" aria-live="polite">
+                  {lastMine ? verdictText(lang, lastMine.verdict) : status.text}
                 </p>
               </div>
 
               <div className="board-controls">
-                <div className="inset reels-well">
+                <div className="reels-well">
                   <Reels slots={draft.slots} active={draft.slot} locked={!canCompose} onFocusSlot={draft.setSlot} />
                 </div>
                 <Keypad
                   isBlocked={draft.isBlocked} ruledOut={ruledOut} disabled={!canCompose}
                   canErase={draft.used.length > 0} canSubmit={canFire}
-                  submitLabel={pending ? "Sending…" : settingSecret ? "Lock it in" : myTurn || phase !== "play" ? "Fire" : "Their turn"}
+                  submitLabel={pending ? t("sending") : settingSecret ? t("lock_in") : myTurn || phase !== "play" ? t("fire") : t("their_turn")}
                   onPlace={draft.place} onErase={draft.clear} onSubmit={submit}
                 />
               </div>
@@ -308,40 +341,40 @@ export function Room({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
             <section className="frame board board-theirs" aria-label={theirTabLabel}>
               <div className="board-log">
                 <div className="board-head">
-                  <p className="eyebrow truncate">{opp ? `${opp.name}’s hunt for your code` : "Their hunt for your code"}</p>
-                  <p className="eyebrow shrink-0">{theirCount} sent</p>
+                  <p className="eyebrow truncate">{theirTabLabel}</p>
+                  <p className="eyebrow shrink-0">{triesText(lang, theirCount)}</p>
                 </div>
 
                 <Ledger turns={view?.theirHunt ?? []} theirs label={theirTabLabel}
-                  empty={<p>Their guesses at your secret<br />will appear here.</p>} />
+                  empty={<p className="eyebrow">{t("their_guesses")}</p>} />
 
-                <p className="parchment readout" aria-live="polite">
+                <p className="readout sr-only" aria-live="polite">
                   {lastTheirs
-                    ? `They guessed ${lastTheirs.guess.join("")}. ${describe(lastTheirs.verdict)}`
-                    : "Nothing yet."}
+                    ? t("they_guessed", { code: lastTheirs.guess.join(""), verdict: verdictText(lang, lastTheirs.verdict) })
+                    : t("nothing_yet")}
                 </p>
               </div>
 
               <div className="board-controls">
                 <div className="inset p-3">
-                  <p className="eyebrow mb-2.5">Closest they have come</p>
+                  <p className="eyebrow mb-2.5">{t("closest")}</p>
                   <div className="flex items-center gap-3" style={{ fontSize: 14 }}>
                     {theirCount ? (
                       <>
                         <BarMarks verdict={threat} animate={false} />
-                        <span>{threatText(threat)}</span>
+                        <span>{verdictText(lang, threat)}</span>
                       </>
                     ) : (
-                      <span className="muted">Nothing yet.</span>
+                      <span className="muted">{t("nothing_yet")}</span>
                     )}
                   </div>
                 </div>
                 <div className="parchment p-3">
-                  <p className="eyebrow on-paper mb-2">Your notes</p>
+                  <p className="eyebrow on-paper mb-2">{t("your_notes")}</p>
                   <div className="grid grid-cols-5 gap-1.5">
                     {["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].map((d) => (
                       <button key={d} type="button" className="note" aria-pressed={Boolean(ruledOut[d])}
-                        aria-label={`Rule out ${d}`} onClick={() => setRuledOut((p) => ({ ...p, [d]: !p[d] }))}>
+                        aria-label={t("rule_out", { d })} onClick={() => setRuledOut((p) => ({ ...p, [d]: !p[d] }))}>
                         {d}
                       </button>
                     ))}
@@ -353,64 +386,65 @@ export function Room({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
         </>
       )}
 
-      <Modal open={guide} onClose={() => setGuide(false)} labelledBy="guide-title">
-        <RailCards inModal ruledOut={ruledOut} onToggle={(d) => setRuledOut((p) => ({ ...p, [d]: !p[d] }))} />
-        <button type="button" className="btn mt-5 w-full" onClick={() => setGuide(false)}>Close</button>
+      <Modal open={chatOpen && Boolean(opp)} onClose={() => setChatOpen(false)} labelledBy="chat-title">
+        <p className="eyebrow mb-3" id="chat-title">{t("messages")}</p>
+        {chatPanel}
+        <button type="button" className="btn-wood mt-4 w-full" onClick={() => setChatOpen(false)}>{t("close")}</button>
       </Modal>
 
       <Modal open={Boolean(view && phase === "over" && !reviewing)} tone="result" labelledBy="over-title"
         onClose={() => setReviewing(true)}>
-        {view && <ResultCard view={view} onRematch={r.rematch} onReview={() => setReviewing(true)} onLeave={r.leave} />}
+        {view && <ResultCard view={view} theme={theme} onRematch={r.rematch} onReview={() => setReviewing(true)} onLeave={r.leave} />}
       </Modal>
     </div>
   );
 }
 
-function ResultCard({ view, onRematch, onReview, onLeave }: {
-  view: RoomView; onRematch: () => void; onReview: () => void; onLeave: () => void;
+function ResultCard({ view, theme, onRematch, onReview, onLeave }: {
+  view: RoomView; theme: Theme; onRematch: () => void; onReview: () => void; onLeave: () => void;
 }) {
-  const them = view.opponent?.name ?? "Your rival";
+  const t = useT();
+  const them = view.opponent?.name ?? t("rival_cap");
   const theirCode = view.revealedSecrets ? (view.seat === "host" ? view.revealedSecrets.guest : view.revealedSecrets.host) : null;
   const you = view.you;
   const opp = view.opponent;
 
   const rematchLabel = you.wantsRematch
-    ? `Waiting for ${them}…`
+    ? t("st_waiting", { name: them })
     : opp?.wantsRematch
-      ? `Rematch — ${them} is in`
-      : "Rematch";
+      ? t("rematch_in", { name: them })
+      : t("rematch");
 
   return (
-    <div className="text-center">
+    <div className="relative text-center">
+      {view.outcome === "win" && <Cheer theme={theme} />}
       <h2 className="title mb-3" style={{ fontSize: 19 }} id="over-title">
-        {view.outcome === "win" ? "You win" : view.outcome === "loss" ? `${them} wins` : "Dead heat"}
+        {view.outcome === "win" ? t("you_win") : t("name_wins", { name: them })}
       </h2>
       <p className="copy" style={{ color: "var(--paper-4)" }}>
-        {view.outcome === "draw"
-          ? `You both cracked it in round ${view.round}.`
-          : view.outcome === "win"
-            ? `You cracked it in round ${view.round}.`
-            : `${them} cracked yours in round ${view.round}.`}
+        {view.outcome === "win"
+          ? t("you_cracked", { n: view.round })
+          : t("they_cracked", { name: them, n: view.round })}
       </p>
 
       {theirCode && (
         <>
-          <p className="copy mt-4" style={{ fontSize: 15, color: "var(--paper-3)" }}>Their code was</p>
+          <p className="copy mt-4" style={{ fontSize: 15, color: "var(--paper-3)" }}>{t("their_code_was")}</p>
           <div className="my-3 flex justify-center gap-2">
             {theirCode.map((d, i) => <span key={i} className="digit is-gold">{d}</span>)}
           </div>
         </>
       )}
 
-      {opp && !opp.connected && <p className="status-sub mb-3">{opp.name} has dropped out for now.</p>}
+      {opp && !opp.connected && <p className="status-sub mb-3">{t("dropped_short", { name: opp.name })}</p>}
 
       <button type="button" className={`btn btn-big w-full ${opp?.wantsRematch && !you.wantsRematch ? "is-pulse" : ""}`}
         disabled={you.wantsRematch} onClick={onRematch} autoFocus>
         {rematchLabel}
       </button>
       <div className="mt-3 grid grid-cols-2 gap-2.5">
-        <button type="button" className="btn-wood" onClick={onReview}>See the boards</button>
-        <QuitButton label="Menu" confirm={false} onLeave={onLeave} />
+        <button type="button" className="btn-wood" onClick={onReview}>{t("see_boards")}</button>
+        <QuitButton label={t("menu")} confirm={false} onLeave={onLeave} />
       </div>
     </div>
   );
@@ -418,34 +452,24 @@ function ResultCard({ view, onRematch, onReview, onLeave }: {
 
 function FatalPanel({ error, onRetry }: { error: RoomError; onRetry: (reopen?: boolean) => void }) {
   const nav = useNavigate();
-  const copy: Record<string, { title: string; body: string; action?: [string, () => void] }> = {
-    no_room: {
-      title: "This table is closed",
-      body: "The code may be mistyped, or the table closed after everyone left. You can open it again and share the link.",
-      action: ["Open this table", () => onRetry(true)],
-    },
-    room_full: { title: "This table is full", body: "Two players are already seated. Ask for a new link, or start your own table." },
-    replaced: {
-      title: "Open somewhere else",
-      body: "This seat was picked up in another tab or window.",
-      action: ["Play here instead", () => onRetry()],
-    },
-    version: {
-      title: "The game was updated",
-      body: "Refresh to get the new version. Your seat is kept.",
-      action: ["Refresh", () => window.location.reload()],
-    },
-    busy: { title: "The server is busy", body: error.reason, action: ["Try again", () => onRetry()] },
-    bad_room: { title: "Not a table code", body: "Table codes are five letters and numbers. Check the link and try again." },
+  const t = useT();
+  const copy: Record<string, { title: Key; body: Key; action?: [Key, () => void] }> = {
+    no_room: { title: "fatal_no_room_t", body: "fatal_no_room_b", action: ["fatal_no_room_a", () => onRetry(true)] },
+    room_full: { title: "fatal_full_t", body: "fatal_full_b" },
+    replaced: { title: "fatal_replaced_t", body: "fatal_replaced_b", action: ["fatal_replaced_a", () => onRetry()] },
+    version: { title: "fatal_version_t", body: "fatal_version_b", action: ["fatal_version_a", () => window.location.reload()] },
+    busy: { title: "fatal_busy_t", body: "fatal_busy_b", action: ["try_again", () => onRetry()] },
+    bad_room: { title: "fatal_bad_room_t", body: "fatal_bad_room_b" },
   };
-  const c = copy[error.code] ?? { title: "Something went wrong", body: error.reason, action: ["Try again", () => onRetry()] };
+  const c = copy[error.code];
+  const action = c ? c.action : (["try_again", () => onRetry()] as [Key, () => void]);
   return (
     <div className="frame panel text-center" role="alert">
-      <h2 className="title mb-3" style={{ fontSize: 16 }}>{c.title}</h2>
-      <p className="copy muted mb-5">{c.body}</p>
+      <h2 className="title mb-3" style={{ fontSize: 16 }}>{t(c?.title ?? "fatal_other_t")}</h2>
+      <p className="copy muted mb-5">{c ? t(c.body) : error.reason}</p>
       <div className="grid gap-2.5">
-        {c.action && <button type="button" className="btn btn-big w-full" onClick={c.action[1]}>{c.action[0]}</button>}
-        <button type="button" className={c.action ? "btn-wood w-full" : "btn btn-big w-full"} onClick={() => nav("/")}>Back to the menu</button>
+        {action && <button type="button" className="btn btn-big w-full" onClick={action[1]}>{t(action[0])}</button>}
+        <button type="button" className={action ? "btn-wood w-full" : "btn btn-big w-full"} onClick={() => nav("/")}>{t("back_to_menu")}</button>
       </div>
     </div>
   );

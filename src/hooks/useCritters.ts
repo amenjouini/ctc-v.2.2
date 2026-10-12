@@ -37,7 +37,7 @@ const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce
  * finds (see world/actor.ts). The next one is scheduled only once the
  * current one has actually left (`done`).
  */
-export function useCritters(theme: Theme) {
+export function useCritters(theme: Theme, enabled = true, summon?: { key: number | string; routine: Routine } | null) {
   const [spawn, setSpawn] = useState<Spawn | null>(null);
   const seq = useRef(0);
   const timer = useRef<number>();
@@ -55,10 +55,20 @@ export function useCritters(theme: Theme) {
 
   useEffect(() => {
     setSpawn(null);
-    if (reducedMotion()) return;
+    if (!enabled || reducedMotion()) return;
     schedule(forced() ? 500 : 6000 + Math.random() * 8000);
     return () => window.clearTimeout(timer.current);
-  }, [schedule]);
+  }, [schedule, enabled]);
+
+  // Something happened that a critter should turn up for right now (a
+  // message to deliver): it replaces whoever is on stage.
+  const summonKey = summon?.key;
+  const summonRoutine = summon?.routine;
+  useEffect(() => {
+    if (summonKey === undefined || !summonRoutine || !enabled || reducedMotion()) return;
+    window.clearTimeout(timer.current);
+    setSpawn({ id: ++seq.current, kind: CRITTER_FOR[theme], routine: summonRoutine });
+  }, [summonKey, summonRoutine, enabled, theme]);
 
   /** `left` is false when the world had no room for one at all. */
   const done = useCallback(

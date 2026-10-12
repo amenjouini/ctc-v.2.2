@@ -252,6 +252,7 @@ export function useRoom({ room, name, create, enabled }: Options) {
   const setSecret = useCallback((code: Code) => act({ t: "setSecret", code }), [act]);
   const guess = useCallback((g: Code) => act({ t: "guess", guess: g }), [act]);
   const rematch = useCallback(() => send({ t: "rematch" }), [send]);
+  const say = useCallback((text: string) => send({ t: "chat", text }), [send]);
 
   /** Give up the seat for good, so the rival is told at once. */
   const leave = useCallback(() => {
@@ -268,5 +269,5 @@ export function useRoom({ room, name, create, enabled }: Options) {
     setEpoch((e) => e + 1);
   }, []);
 
-  return { view, link, error, pending, setSecret, guess, rematch, leave, retry };
+  return { view, link, error, pending, setSecret, guess, rematch, say, leave, retry };
 }

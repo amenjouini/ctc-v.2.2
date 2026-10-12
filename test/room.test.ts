@@ -91,23 +91,36 @@ test("the server scores guesses; views never leak the rival's secret mid-match",
   assert.ok(!JSON.stringify(hv).includes("tok"), "tokens are never in a view");
 });
 
-test("rounds resolve in pairs: the second mover gets a reply before the match ends", () => {
+test("the match ends the moment a code is cracked", () => {
   const { room } = playingRoom("1234", "5678");
-  R.guess(room, "host", c("5678")); // host cracks it first
-  assert.equal(room.phase, "play", "guest still gets their reply");
-  R.guess(room, "guest", c("9876"));
-  assert.equal(room.phase, "over");
+  R.guess(room, "host", c("5678")); // host cracks it on the opening move
+  assert.equal(room.phase, "over", "no reply turn: there is nothing left to play for");
+  assert.equal(R.guess(room, "guest", c("1234")).ok, false, "no guesses after the end");
   assert.equal(R.viewFor(room, "host").outcome, "win");
   assert.equal(R.viewFor(room, "guest").outcome, "loss");
   assert.deepEqual(R.viewFor(room, "guest").revealedSecrets, { host: c("1234"), guest: c("5678") });
 });
 
-test("both cracking in the same round is a draw", () => {
+test("the second mover can win too, on their own turn", () => {
   const { room } = playingRoom("1234", "5678");
-  R.guess(room, "host", c("5678"));
+  R.guess(room, "host", c("9876"));
   R.guess(room, "guest", c("1234"));
-  assert.equal(R.viewFor(room, "host").outcome, "draw");
-  assert.equal(R.viewFor(room, "guest").outcome, "draw");
+  assert.equal(room.phase, "over");
+  assert.equal(R.viewFor(room, "guest").outcome, "win");
+  assert.equal(R.viewFor(room, "host").outcome, "loss");
+});
+
+test("table talk reaches both players, is capped, and is wiped when someone leaves", () => {
+  const { room } = seatedRoom();
+  assert.ok(R.say(room, "host", "good luck").ok);
+  assert.ok(R.say(room, "guest", "you too").ok);
+  assert.deepEqual(R.viewFor(room, "host").chat.map((l) => [l.mine, l.text]), [[true, "good luck"], [false, "you too"]]);
+  assert.deepEqual(R.viewFor(room, "guest").chat.map((l) => l.mine), [false, true]);
+  for (let i = 0; i < 50; i++) R.say(room, "host", `m${i}`);
+  assert.equal(room.chat.length, 30);
+  R.leave(room, "guest");
+  assert.equal(R.viewFor(room, "host").chat.length, 0);
+  assert.equal(R.say(room, "host", "anyone?").ok, false, "nobody to talk to");
 });
 
 test("no cracks: rounds advance and the first mover opens each", () => {
@@ -121,7 +134,6 @@ test("no cracks: rounds advance and the first mover opens each", () => {
 test("rematch needs both votes, is idempotent, and flips the first mover", () => {
   const { room } = playingRoom("1234", "5678");
   R.guess(room, "host", c("5678"));
-  R.guess(room, "guest", c("9876"));
   assert.ok(R.requestRematch(room, "host").ok);
   assert.ok(R.requestRematch(room, "host").ok);
   assert.equal(room.phase, "over", "one vote is not enough");
