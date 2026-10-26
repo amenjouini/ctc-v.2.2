@@ -179,7 +179,7 @@ export function Room({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
       return (
         <div className="frame panel">
           <p className="eyebrow mb-2">{t("table_n", { code: room })}</p>
-          <h2 className="title mb-3" style={{ fontSize: 16 }}>{t("take_seat")}</h2>
+          <h2 className="title mb-3" style={{ fontSize: 24 }}>{t("take_seat")}</h2>
           <p className="copy muted mb-4">{t("pick_name")}</p>
           <form onSubmit={(e) => { e.preventDefault(); takeSeat(); }}>
             <label className="field-label" htmlFor="seat-name">{t("your_name")}</label>
@@ -334,6 +334,7 @@ export function Room({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
                   canErase={draft.used.length > 0} canSubmit={canFire}
                   submitLabel={pending ? t("sending") : settingSecret ? t("lock_in") : myTurn || phase !== "play" ? t("fire") : t("their_turn")}
                   onPlace={draft.place} onErase={draft.clear} onSubmit={submit}
+                  onRuleOut={phase === "play" ? (d) => setRuledOut((p) => ({ ...p, [d]: !p[d] })) : undefined}
                 />
               </div>
             </section>
@@ -418,7 +419,7 @@ function ResultCard({ view, theme, onRematch, onReview, onLeave }: {
   return (
     <div className="relative text-center">
       {view.outcome === "win" && <Cheer theme={theme} />}
-      <h2 className="title mb-3" style={{ fontSize: 19 }} id="over-title">
+      <h2 className="title mb-3" style={{ fontSize: 24 }} id="over-title">
         {view.outcome === "win" ? t("you_win") : t("name_wins", { name: them })}
       </h2>
       <p className="copy" style={{ color: "var(--paper-4)" }}>
@@ -465,7 +466,7 @@ function FatalPanel({ error, onRetry }: { error: RoomError; onRetry: (reopen?: b
   const action = c ? c.action : (["try_again", () => onRetry()] as [Key, () => void]);
   return (
     <div className="frame panel text-center" role="alert">
-      <h2 className="title mb-3" style={{ fontSize: 16 }}>{t(c?.title ?? "fatal_other_t")}</h2>
+      <h2 className="title mb-3" style={{ fontSize: 24 }}>{t(c?.title ?? "fatal_other_t")}</h2>
       <p className="copy muted mb-5">{c ? t(c.body) : error.reason}</p>
       <div className="grid gap-2.5">
         {action && <button type="button" className="btn btn-big w-full" onClick={action[1]}>{t(action[0])}</button>}

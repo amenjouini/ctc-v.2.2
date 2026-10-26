@@ -16,8 +16,10 @@
   --rose-5: #ffe4b8; --rose-4: #ffa5ab; --rose-3: #e4667c;
   --rose-2: #a93a62; --rose-1: #6c2051; --rose-0: #3a1340;
 
-  --font-title: "Press Start 2P", monospace;
-  --font-ui: "Pixelify Sans", "Trebuchet MS", sans-serif;
+  /* One rounded face for everything: chunky enough for the game look,
+     and every digit is distinct (no 2 that reads as S or Z). */
+  --font-title: "Fredoka", "Trebuchet MS", sans-serif;
+  --font-ui: "Fredoka", "Trebuchet MS", sans-serif;
 
   --step-fast: steps(4, end);
   --step-pop: steps(3, end);
@@ -140,7 +142,7 @@
     color: var(--paper-4);
     background: var(--sky-0);
     image-rendering: pixelated;
-    -webkit-font-smoothing: none;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
     overflow: hidden;
     overscroll-behavior: none;
     -webkit-text-size-adjust: 100%;
@@ -180,9 +182,9 @@
 
   /* ---------- type ---------- */
   .title {
-    font-family: var(--font-title);
-    font-size: clamp(16px, 3vw, 28px);
-    line-height: 1.5;
+    font-family: var(--font-title); font-weight: 700;
+    font-size: clamp(22px, 4.2vw, 40px);
+    line-height: 1.2;
     color: var(--paper-5);
     margin: 0;
     text-shadow: -3px 0 var(--ink), 3px 0 var(--ink), 0 -3px var(--ink), 0 3px var(--ink),
@@ -223,7 +225,7 @@
     background: var(--slate-3); color: var(--slate-1);
     box-shadow: inset var(--px) var(--px) 0 0 var(--slate-4);
   }
-  .btn-big { font-family: var(--font-title); font-size: 11px; padding: 13px; line-height: 1.5; }
+  .btn-big { font-family: var(--font-title); font-weight: 700; font-size: 17px; padding: 13px; line-height: 1.5; }
   .btn.is-pulse:not(:disabled) { animation: pulse 900ms var(--step-pop) infinite alternate; }
   @keyframes pulse { to { background: var(--brass-4); } }
 
@@ -241,7 +243,7 @@
 
   /* the destructive choice in a confirm dialog: present, never loud */
   .btn-quiet {
-    font-family: var(--font-title); font-size: 10px; padding: 12px; min-height: var(--tap);
+    font-family: var(--font-title); font-weight: 700; font-size: 16px; padding: 12px; min-height: var(--tap);
     color: var(--paper-5); background: var(--key-lo);
     border: var(--px) solid var(--ink);
     box-shadow: inset var(--px) var(--px) 0 0 var(--key);
@@ -264,13 +266,13 @@
   }
   .gauge span { font-family: var(--font-ui); font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate-4); }
   .gauge b {
-    font-family: var(--font-title); font-size: 14px;
+    font-family: var(--font-title); font-weight: 700; font-size: 18px;
     color: var(--paper-5); font-variant-numeric: tabular-nums;
   }
 
   .badge {
     display: inline-block; padding: 6px 10px;
-    font-family: var(--font-title); font-size: 9px;
+    font-family: var(--font-title); font-weight: 700; font-size: 14px;
     color: var(--jade-5); background: var(--jade-2); border: var(--px) solid var(--ink);
   }
 
@@ -286,7 +288,7 @@
 
   .digit {
     width: 40px; height: 40px; display: grid; place-items: center;
-    font-family: var(--font-title); font-size: 14px; color: var(--paper-5);
+    font-family: var(--font-title); font-weight: 700; font-size: 20px; color: var(--paper-5);
     background: var(--key); border: var(--px) solid var(--ink);
     box-shadow: inset var(--px) var(--px) 0 0 var(--key-hi),
       inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--key-lo);
@@ -305,6 +307,14 @@
     grid-auto-rows: var(--bar-h); gap: var(--bar-gap);
     padding: 4px 6px; background: var(--slate-0);
     border: 2px solid var(--ink); border-radius: calc(var(--bar-r) + 3px); flex: none;
+    justify-content: center;
+  }
+  /* no hits: a one-slot capsule holding a single muted dash, drawn rather
+     than typed so it stays crisp and centred in every font */
+  .bars.is-empty { grid-template-columns: var(--bar-w); place-items: center; }
+  .bars-none {
+    display: block; width: calc(var(--bar-w) * 0.6); height: 3px;
+    border-radius: 2px; background: var(--slate-4); font-size: 0;
   }
   .bar {
     width: var(--bar-w); height: var(--bar-h);
@@ -340,7 +350,7 @@
   .reel:disabled { cursor: default; }
   .reel-face {
     position: absolute; inset: 0; display: grid; place-items: center;
-    font-family: var(--font-title); font-size: clamp(16px, 2.7vh, 24px); color: var(--paper-5);
+    font-family: var(--font-title); font-weight: 700; font-size: clamp(24px, 4vh, 36px); color: var(--paper-5);
     font-variant-numeric: tabular-nums; text-shadow: 0 3px 0 var(--ink);
   }
   .reel[aria-current="true"] .reel-face { color: var(--brass-4); text-shadow: 0 3px 0 var(--brass-1); }
@@ -350,10 +360,11 @@
   .keypad {
     display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: clamp(5px, 0.9vh, 8px); user-select: none; -webkit-user-select: none;
+    -webkit-touch-callout: none; /* long press rules a digit out, no iOS menu */
   }
   .key, .key-erase, .key-fire { height: clamp(38px, 5.4vh, 50px); min-height: 0; padding: 0 6px; }
   .key-erase { grid-column: span 2; }
-  .key-fire { grid-column: span 3; font-family: var(--font-title); font-size: 11px; }
+  .key-fire { grid-column: span 3; font-family: var(--font-title); font-weight: 700; font-size: 17px; }
   /* A wide board (desktop) stacks Erase over Fire in a sixth column. */
   @container controls (min-width: 470px) {
     .keypad { grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(120px, 140px); }
@@ -362,7 +373,7 @@
   }
 
   .key {
-    font-family: var(--font-title); font-size: clamp(12px, 1.7vh, 15px);
+    font-family: var(--font-title); font-weight: 700; font-size: clamp(20px, 2.8vh, 26px);
     color: var(--paper-5); background: var(--key); border: var(--px) solid var(--ink);
     box-shadow: inset var(--px) var(--px) 0 0 var(--key-hi),
       inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--key-lo),
@@ -391,7 +402,7 @@
   }
 
   .note {
-    height: clamp(30px, 3.8vh, 36px); font-family: var(--font-title); font-size: clamp(10px, 1.4vh, 12px);
+    height: clamp(30px, 3.8vh, 36px); font-family: var(--font-title); font-weight: 700; font-size: clamp(16px, 2.2vh, 19px);
     color: var(--wood-0); background: var(--paper-3);
     border: var(--px) solid var(--wood-1);
     box-shadow: inset var(--px) var(--px) 0 0 var(--paper-5);
@@ -402,13 +413,18 @@
     box-shadow: inset var(--px) var(--px) 0 0 var(--rose-2);
   }
 
+  /* the long-press shortcut only exists on touch screens */
+  .hold-tip { margin: 10px 0 0; font-size: 14px; line-height: 1.35; color: var(--paper-3); }
+  .hold-tip.on-paper { color: var(--wood-2); }
+  @media (hover: hover) and (pointer: fine) { .hold-tip { display: none; } }
+
   .pip { width: 9px; height: 9px; background: var(--brass-3);
     box-shadow: inset 2px 2px 0 0 var(--brass-4), inset -2px -2px 0 0 var(--brass-1); }
   .pip.spent { background: var(--slate-1); box-shadow: inset 2px 2px 0 0 var(--ink); }
 
   /* ---------- fields ---------- */
   .field {
-    padding: 12px; font-family: var(--font-title); font-size: 15px; min-height: var(--tap);
+    padding: 12px; font-family: var(--font-title); font-weight: 700; font-size: 20px; min-height: var(--tap);
     text-align: center; letter-spacing: 0.14em; text-transform: uppercase;
     color: var(--wood-0); background: var(--paper-4);
     border: var(--px) solid var(--ink);
@@ -464,7 +480,7 @@
   .lock b { letter-spacing: 0.12em; }
 
   /* the front door: two big choices */
-  .btn-hero { font-family: var(--font-title); font-size: clamp(13px, 3.6vw, 16px); padding: 20px 14px; line-height: 1.4; }
+  .btn-hero { font-family: var(--font-title); font-weight: 700; font-size: clamp(19px, 5vw, 23px); padding: 20px 14px; line-height: 1.4; }
 
   /* table talk */
   .chat-list {
@@ -799,7 +815,7 @@
   margin-bottom: var(--stage-gap);
 }
 .masthead:not(:has(.toolbar)) { grid-template-areas: "title themes"; }
-.masthead-title { grid-area: title; white-space: nowrap; justify-self: start; font-size: clamp(11px, 3.6vw, 28px); }
+.masthead-title { grid-area: title; white-space: nowrap; justify-self: start; font-size: clamp(18px, 5.4vw, 40px); }
 .masthead > .menu-btn { justify-self: end; }
 .toolbar { grid-area: tools; display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; min-width: 0; }
 .toolbar > * { flex: 0 0 auto; }
@@ -807,7 +823,7 @@
   .masthead { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "title tools themes"; }
   /* the title shares its row with the tools and the picker here: it scales
      with what that row leaves it, so it never runs under the first box */
-  .masthead-title { font-size: clamp(16px, 2.2vw, 28px); }
+  .masthead-title { font-size: clamp(24px, 3vw, 40px); }
   .masthead:not(:has(.toolbar)) { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "title . themes"; }
   .toolbar { justify-content: flex-end; flex-wrap: nowrap; }
 }
@@ -821,7 +837,7 @@
   .board-log, .board-controls { gap: 8px; }
   .ledger { padding: 5px; gap: 4px; }
   .row { padding: 3px 6px; gap: 8px; }
-  .row .digit { width: 30px; height: 30px; font-size: 12px; }
+  .row .digit { width: 30px; height: 30px; font-size: 18px; }
   .reel { height: 48px; width: 44px; }
   .reels-well { padding: 2px 0; }
   .key, .key-erase, .key-fire { height: 44px; }
@@ -833,13 +849,13 @@
 @media (max-width: 639px) {
   .masthead { gap: 6px 8px; }
   /* the title shares its row with the menu button: it takes exactly the
-     width that is left, about 14.5 glyphs of it */
-  .masthead-title { font-size: clamp(10px, calc((100vw - 2 * var(--gutter) - var(--tap) - 14px) / 14.5), 20px); }
+     width that is left: "Crack the Code" is about 8em wide in Fredoka bold */
+  .masthead-title { font-size: clamp(16px, calc((100vw - 2 * var(--gutter) - var(--tap) - 14px) / 8.5), 30px); }
   /* tools share one row evenly instead of stacking into a tower */
   .toolbar { gap: 6px; flex-wrap: nowrap; }
   .toolbar > * { flex: 1 1 auto; justify-content: center; min-width: 0; }
   .toolbar .gauge { padding: 6px 8px; gap: 6px; min-height: 40px; }
-  .toolbar .gauge b { font-size: 12px; }
+  .toolbar .gauge b { font-size: 16px; }
   .toolbar .btn-wood { padding: 6px 6px; font-size: 13px; min-height: 40px; white-space: nowrap; }
 }
 
@@ -849,7 +865,7 @@
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
   gap: 8px 12px; padding: 10px 14px; margin-bottom: 10px;
 }
-.status-text { font-size: 12px; color: var(--paper-3); }
+.status-text { font-size: 15px; color: var(--paper-3); }
 .status-bar.tone-turn {
   background: var(--jade-2); border-color: var(--jade-0);
   box-shadow: 0 0 0 var(--px) var(--ink), inset var(--px) var(--px) 0 0 var(--jade-3);
@@ -869,16 +885,16 @@
 }
 .board-tabs button {
   display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0;
-  font-family: var(--font-title); font-size: 9px; line-height: 1.5; min-height: 40px; padding: 6px 8px;
+  font-family: var(--font-title); font-weight: 700; font-size: 15px; line-height: 1.2; min-height: 40px; padding: 6px 8px;
 }
 .tab-dot { width: 8px; height: 8px; flex: none; background: var(--rose-3); box-shadow: 0 0 0 2px var(--ink); }
 
 @media (max-width: 639px) {
   .status-bar { padding: 8px 10px; margin-bottom: 8px; }
-  .status-text { font-size: 10px; }
+  .status-text { font-size: 14px; }
   .status-sub { font-size: 13px; }
   .status-gauges .gauge { padding: 5px 8px; gap: 6px; }
-  .status-gauges .gauge b { font-size: 12px; }
+  .status-gauges .gauge b { font-size: 16px; }
   .board-tabs { margin-bottom: 8px; }
 }
 
@@ -888,11 +904,11 @@
    the height goes to the ledger rather than to chrome. */
 @media (max-width: 1023px) and (max-height: 740px) {
   .status-bar { flex-wrap: nowrap; padding: 6px 10px; }
-  .status-bar .status-text { font-size: 9px; }
+  .status-bar .status-text { font-size: 13px; }
   .status-gauges { flex-wrap: nowrap; flex: none; }
   .status-gauges .gauge { padding: 4px 7px; gap: 5px; }
-  .status-gauges .gauge span { font-size: 8px; }
-  .status-gauges .gauge b { font-size: 11px; }
+  .status-gauges .gauge span { font-size: 11px; }
+  .status-gauges .gauge b { font-size: 15px; }
   .stage-room .board-head { display: none; }
   .readout { min-height: 30px; padding: 4px 10px; }
   .board-log > .ledger { min-height: 52px; }
@@ -935,20 +951,20 @@
   container: controls / inline-size;
 }
 .board-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
-.board-extra { font-family: var(--font-title); font-size: clamp(7px, 2.3vw, 9px); white-space: nowrap; padding: 0 10px; min-height: 0; height: clamp(36px, 4.8vh, 46px); }
-.board-extra.btn-big { font-size: 11px; }
+.board-extra { font-family: var(--font-title); font-weight: 700; font-size: clamp(13px, 3.6vw, 15px); white-space: nowrap; padding: 0 10px; min-height: 0; height: clamp(36px, 4.8vh, 46px); }
+.board-extra.btn-big { font-size: 17px; }
 
 .rail { display: flex; flex-direction: column; gap: 14px; min-height: 0; overflow-y: auto; scrollbar-width: none; }
 .rail::-webkit-scrollbar { width: 0; }
 .rail .card { flex: 0 0 auto; }
 
-.digit { width: clamp(26px, 4.4vh, 40px); height: clamp(26px, 4.4vh, 40px); font-size: clamp(10px, 1.6vh, 14px); }
+.digit { width: clamp(26px, 4.4vh, 40px); height: clamp(26px, 4.4vh, 40px); font-size: clamp(16px, 2.5vh, 21px); }
 
 /* A phone on its side: the ledger on the left, the keypad on the right,
    so nothing has to fit into 360px of height one on top of the other. */
 @media (orientation: landscape) and (max-height: 560px) {
   .masthead { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "title tools themes"; margin-bottom: 8px; }
-  .masthead-title { font-size: 12px; }
+  .masthead-title { font-size: 20px; }
   .masthead:not(:has(.toolbar)) { grid-template-areas: "title . themes"; }
   .toolbar .gauge-label { display: none; }
   .toolbar { justify-content: flex-end; flex-wrap: nowrap; }
@@ -976,7 +992,7 @@
 
 /* a single card in the middle of the stage: lobby, loading, errors */
 .panel { width: 100%; max-width: 520px; margin: 0 auto auto; padding: clamp(16px, 3vh, 28px); overflow-y: auto; }
-.room-code { font-size: clamp(26px, 8vw, 36px); letter-spacing: 0.16em; }
+.room-code { font-size: clamp(34px, 10vw, 48px); letter-spacing: 0.16em; }
 
 .overlay {
   position: fixed; inset: 0; z-index: var(--z-dialog);
@@ -987,7 +1003,7 @@
 }
 .overlay.is-result { z-index: var(--z-result); }
 .dialog-panel { width: 100%; max-width: 440px; padding: clamp(18px, 3vh, 28px); outline: none; }
-.dialog-panel .title { font-size: clamp(15px, 4.4vw, 19px) !important; }
+.dialog-panel .title { font-size: clamp(22px, 6vw, 28px) !important; }
 
 .toast-layer {
   position: fixed; left: 0; right: 0; top: max(env(safe-area-inset-top), 10px);

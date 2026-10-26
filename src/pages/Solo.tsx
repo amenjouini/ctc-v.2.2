@@ -113,6 +113,7 @@ export function Solo({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
               isBlocked={draft.isBlocked} ruledOut={game.ruledOut} disabled={game.solved}
               canErase={draft.used.length > 0} canSubmit={draft.complete && !game.solved} submitLabel={t("crack_it")}
               onPlace={draft.place} onErase={draft.clear} onSubmit={fire}
+              onRuleOut={game.toggleRuledOut}
             />
 
             {game.solved ? (
@@ -142,7 +143,7 @@ export function Solo({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
       </main>
 
       <Modal open={askNew} onClose={() => setAskNew(false)} labelledBy="new-title">
-        <h2 className="title mb-3 text-center" style={{ fontSize: 16 }} id="new-title">{t("new_q")}</h2>
+        <h2 className="title mb-3 text-center" style={{ fontSize: 24 }} id="new-title">{t("new_q")}</h2>
         <p className="copy text-center" style={{ color: "var(--paper-3)" }}>
           {t("new_warning")}
         </p>
@@ -155,7 +156,7 @@ export function Solo({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
       <Modal open={game.solved && !reviewing} tone="result" labelledBy="solved-title" onClose={() => setReviewing(true)}>
         <div className="relative text-center">
           <Cheer theme={theme} />
-          <h2 className="title mb-3" style={{ fontSize: 19 }} id="solved-title">{t("cracked")}</h2>
+          <h2 className="title mb-3" style={{ fontSize: 24 }} id="solved-title">{t("cracked")}</h2>
           {game.newBest && <p className="badge mb-3">{t("new_best")}</p>}
           <p className="copy" style={{ color: "var(--paper-4)" }}>
             {t("code_was", { tries })}

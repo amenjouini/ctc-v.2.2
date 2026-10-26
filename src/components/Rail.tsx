@@ -136,7 +136,7 @@ export function QuitButton({
       </button>
 
       <Modal open={asking} onClose={() => setAsking(false)} labelledBy="quit-title">
-        <h2 className="title mb-3 text-center" style={{ fontSize: 17 }} id="quit-title">
+        <h2 className="title mb-3 text-center" style={{ fontSize: 24 }} id="quit-title">
           {t("leave_q")}
         </h2>
         <p className="copy text-center" style={{ color: "var(--paper-3)" }}>
@@ -170,7 +170,9 @@ export function BarLegend({ onPaper = false }: { onPaper?: boolean }) {
         <span style={strong}>{t("legend_near")}</span>
       </div>
       <div className="flex items-center gap-3" style={{ fontSize: 15 }}>
-        <span className="bar absent" />
+        <span className="bars is-empty" style={{ width: "var(--bar-w)", padding: 0, border: 0, background: "none" }}>
+          <span className="bars-none" />
+        </span>
         <span>{t("legend_absent")}</span>
       </div>
     </div>
@@ -194,6 +196,7 @@ export function NotesPad({
           </button>
         ))}
       </div>
+      <p className={`hold-tip ${onPaper ? "on-paper" : ""}`}>{t("hold_tip")}</p>
     </>
   );
 }

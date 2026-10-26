@@ -91,11 +91,20 @@ tells the rival.
 
 ## Design notes worth keeping
 
-**Feedback is four bars, two over two — never a row.** Players consistently
-mapped mark-to-digit when the marks sat in a line beside four digits, because
-that is exactly what Wordle trains you to do. A square cluster has no axis to
-align against. Fill style (solid / hollow / sunken) carries the meaning as
-well as hue, so it survives colourblindness.
+**Feedback is earned bars only, at most two to a line — never a row of four.**
+Players consistently mapped mark-to-digit when the marks sat in a line beside
+four digits, because that is exactly what Wordle trains you to do. A cluster
+has no axis to align against. The capsule holds one bar per hit and grows with
+them; a guess with no hits shows a single muted dash. Fill style (solid /
+hollow) carries the meaning as well as hue, so it survives colourblindness.
+The bars pop in one by one after the row lands, unless reduced motion is on.
+
+**One readable face: Fredoka.** The old pixel fonts made a 2 look like an S
+at small sizes. Fredoka keeps the chunky game feel and every digit is distinct.
+
+**Hold a digit key to rule it out (touch only).** A long press on the keypad
+toggles that digit in the notes instead of placing it, so phone players never
+leave the keypad to take notes.
 
 **Verdict text is always spelled out, never figures.** A numeral next to a
 four-digit guess reads as another digit of the code. That is also why guess
