@@ -6,7 +6,7 @@
  * last row (the crab's end at row 14) no longer hovers above the table.
  */
 
-export type CritterKind = "owl" | "crab" | "penguin" | "squirrel";
+export type CritterKind = "owl" | "crab" | "penguin" | "squirrel" | "ghost";
 
 export interface SpriteMeta {
   /** contact point with the ground */
@@ -16,6 +16,8 @@ export interface SpriteMeta {
   /** leftmost / rightmost painted columns (+1) */
   left: number;
   right: number;
+  /** drawn this many art px above its feet: a flier hovers over what it is on */
+  hover?: number;
 }
 
 export const ART = 16;
@@ -25,6 +27,7 @@ export const SPRITES: Record<CritterKind, SpriteMeta> = {
   crab: { foot: { x: 8, y: 14 }, top: 0, left: 0, right: 16 },
   penguin: { foot: { x: 8, y: 16 }, top: 1, left: 2, right: 15 },
   squirrel: { foot: { x: 9, y: 16 }, top: 1, left: 0, right: 14 },
+  ghost: { foot: { x: 8, y: 16 }, top: 1, left: 1, right: 16, hover: 3 },
 };
 
 /** Body size in world units (1 unit = ART px of sprite). */

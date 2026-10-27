@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { dialogs } from "@/hooks/dialogs";
 import { useT } from "@/i18n";
@@ -18,6 +18,7 @@ export function Modal({
   children,
   labelledBy,
   tone = "dialog",
+  panelClass = "",
 }: {
   open: boolean;
   onClose?: () => void;
@@ -26,6 +27,8 @@ export function Modal({
   /** "result" sits one layer below dialogs, so a dialog opened from a
    *  result card (Quit) still lands on top of it */
   tone?: "dialog" | "result";
+  /** extra class on the panel itself */
+  panelClass?: string;
 }) {
   const panel = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
@@ -58,37 +61,38 @@ export function Modal({
       dialogs.closed();
       window.clearTimeout(t);
       document.removeEventListener("keydown", onKey, true);
-      before?.focus?.();
+      before?.focus?.({ preventScroll: true });
     };
   }, [open]);
 
+  // The overlay fades in and out with a CSS animation and stays mounted
+  // until the fade-out has finished. (framer-motion's exit snapped it back
+  // to full opacity for one frame just before removing it: a visible flash.)
+  const [shown, setShown] = useState(open);
+  if (open && !shown) setShown(true);
+  const closing = shown && !open;
+
+  if (!shown) return null;
   return createPortal(
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          className={`overlay ${tone === "result" ? "is-result" : ""}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.16 }}
-          onClick={(e) => e.target === e.currentTarget && onClose?.()}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={labelledBy}
-        >
-          <motion.div
-            ref={panel}
-            tabIndex={-1}
-            className="frame dialog-panel"
-            initial={{ y: 16, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-          >
-            {children}
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>,
+    <div
+      className={`overlay ${tone === "result" ? "is-result" : ""} ${closing ? "is-closing" : ""}`}
+      onClick={(e) => !closing && e.target === e.currentTarget && onClose?.()}
+      onAnimationEnd={(e) => e.target === e.currentTarget && closing && setShown(false)}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={labelledBy}
+    >
+      <motion.div
+        ref={panel}
+        tabIndex={-1}
+        className={`frame dialog-panel ${panelClass}`}
+        initial={{ y: 16, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+      >
+        {children}
+      </motion.div>
+    </div>,
     document.body,
   );
 }

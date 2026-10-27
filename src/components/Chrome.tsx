@@ -55,6 +55,19 @@ const SWATCH: Record<Theme, JSX.Element> = {
       <rect x="2" y="5" width="1" height="1" fill="#c9531f" /><rect x="3" y="9" width="1" height="1" fill="#ff8f1f" /><rect x="1" y="10" width="1" height="1" fill="#c9531f" />
     </svg>
   ),
+  halloween: (
+    <svg viewBox="0 0 12 12">
+      <rect width="12" height="12" fill="#1b0f2c" />
+      <rect y="6" width="12" height="2" fill="#5e1e4e" />
+      <rect x="7" y="1" width="3" height="3" fill="#f2eecb" /><rect x="8" y="2" width="1" height="1" fill="#d8d2a6" />
+      <rect x="2" y="2" width="1" height="1" fill="#120a1e" /><rect x="1" y="1" width="1" height="1" fill="#120a1e" /><rect x="3" y="1" width="1" height="1" fill="#120a1e" />
+      <rect x="1" y="5" width="3" height="3" fill="#0e0818" /><rect x="2" y="4" width="1" height="1" fill="#0e0818" />
+      <rect x="2" y="6" width="1" height="1" fill="#ffb84a" />
+      <rect y="8" width="12" height="4" fill="#1e2519" />
+      <rect x="6" y="8" width="4" height="3" fill="#ff7a1a" /><rect x="7" y="7" width="1" height="1" fill="#3c6b2a" />
+      <rect x="7" y="9" width="1" height="1" fill="#ffe08a" /><rect x="9" y="9" width="1" height="1" fill="#ffe08a" />
+    </svg>
+  ),
 };
 
 export function ThemePicker({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) => void }) {
@@ -82,8 +95,22 @@ function Menu({
   const settings = useSettings();
   const t = useT();
   return (
-    <Modal open={open} onClose={onClose} labelledBy="menu-title">
-      <p className="sr-only" id="menu-title">{t("menu")}</p>
+    <Modal open={open} onClose={onClose} labelledBy="menu-title" panelClass="menu-panel">
+      {/* pinned to the top while the menu scrolls, so the way back to the
+          table is always one tap away */}
+      <div className="menu-head">
+        <p className="eyebrow" id="menu-title">{t("menu")}</p>
+        <button type="button" className="btn-wood menu-close" onClick={onClose}>
+          <svg viewBox="0 0 8 8" aria-hidden="true" shapeRendering="crispEdges">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <g key={i} fill="currentColor">
+                <rect x={i} y={i} width="1" height="1" /><rect x={7 - i} y={i} width="1" height="1" />
+              </g>
+            ))}
+          </svg>
+          {t("close")}
+        </button>
+      </div>
       {typeof extra === "function" ? extra(onClose) : extra}
       <section className="menu-section">
         <p className="eyebrow mb-3">{t("how_to_play")}</p>

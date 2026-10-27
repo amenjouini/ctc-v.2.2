@@ -127,7 +127,7 @@ function simulate(input: WorldInput, kind: CritterKind, seed: number, routine?: 
 }
 
 test("critters stay physically valid and always leave (property run)", () => {
-  const kinds: CritterKind[] = ["owl", "crab", "penguin", "squirrel"];
+  const kinds: CritterKind[] = ["owl", "crab", "penguin", "squirrel", "ghost"];
   let runs = 0;
   for (const input of [desktop, cramped, walled]) {
     for (const kind of kinds) {

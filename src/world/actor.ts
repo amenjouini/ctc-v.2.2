@@ -32,7 +32,7 @@ import {
 
 export type Intent = "stroll" | "explore" | "climb" | "letters" | "swing" | "tour" | "wave" | "trick";
 export type Routine = "walk" | "box" | "letters" | "swing" | "tour" | "dangle" | "trick" | "peek" | "speak";
-export type Pose = "stand" | "walk" | "air" | "hang" | "wave" | "trick" | "look" | "talk";
+export type Pose = "stand" | "walk" | "air" | "hang" | "wave" | "trick" | "look" | "talk" | "boo";
 
 /** How long a critter holds up a message if nobody taps it away. */
 const TALK_S = 20;
@@ -52,7 +52,16 @@ export interface Species {
   sideways: boolean;
   /** how much it likes each thing (0 = never) */
   weights: Record<Intent, number>;
+  /** floats instead of walking: no thread, and it sinks slowly when it drops */
+  flies?: boolean;
+  /** its trick is a peek-a-boo: hides behind its hand, then pops out — BOO! */
+  peekaboo?: boolean;
 }
+
+/** How long the peek-a-boo lasts; the pop comes just past halfway. */
+const BOO_S = 2.2;
+/** A flier never drops faster than this, units / s. */
+const FLOAT_FALL = 2.4;
 
 export const SPECIES: Record<CritterKind, Species> = {
   owl: { speed: 1.3, burst: 0, maxUp: 2.9, sideways: false,
@@ -63,6 +72,10 @@ export const SPECIES: Record<CritterKind, Species> = {
     weights: { stroll: 1, explore: 1, climb: 3, letters: 3, swing: 3, tour: 3, wave: 1, trick: 2 } },
   crab: { speed: 2.2, burst: 1.3, maxUp: 3, sideways: true,
     weights: { stroll: 1, explore: 2, climb: 2, letters: 2, swing: 2, tour: 4, wave: 2, trick: 3 } },
+  // a small sheet ghost: floats about, haunts the letters, plays peek-a-boo.
+  // It has no hands to swing by and no feet to walk round the table on.
+  ghost: { speed: 1.2, burst: 0, maxUp: 3.2, sideways: false, flies: true, peekaboo: true,
+    weights: { stroll: 2, explore: 3, climb: 3, letters: 3, swing: 0, tour: 0, wave: 2, trick: 4 } },
 };
 
 /** How far the arms reach above the head when hanging. */
@@ -81,7 +94,7 @@ const TOUR_MAX_S = 25;
 type Task =
   | { k: "walk"; x: number }
   | { k: "jump"; to: { x: number; y: number }; land: string | null; lift: number; grip?: Grip }
-  | { k: "pose"; pose: "stand" | "wave" | "trick" | "look" | "talk"; dur: number; face?: 1 | -1 }
+  | { k: "pose"; pose: "stand" | "wave" | "trick" | "look" | "talk" | "boo"; dur: number; face?: 1 | -1 }
   | { k: "swing"; grips: Grip[] }
   | { k: "tour"; dir: 1 | -1 }
   | { k: "drop" }
@@ -92,7 +105,7 @@ type Task =
 
 export interface FX {
   id: number;
-  kind: "puff" | "sparkle";
+  kind: "puff" | "sparkle" | "boo";
   x: number;
   y: number;
 }
@@ -390,7 +403,14 @@ function tourTasks(world: World, a: Actor, rng: Rng): Task[] | null {
   return [{ k: "tour", dir: rng() < 0.5 ? 1 : -1 }, { k: "pose", pose: "wave", dur: 1.2 }];
 }
 
+/** A small flourish between journeys: a wave or the species' own trick. */
+function flourish(a: Actor, rng: Rng): Task {
+  if (rng() < 0.5) return { k: "pose", pose: "wave", dur: 1.3 };
+  return a.sp.peekaboo ? { k: "pose", pose: "boo", dur: BOO_S } : { k: "pose", pose: "trick", dur: 1.3 };
+}
+
 function trickTasks(world: World, a: Actor, rng: Rng): Task[] | null {
+  if (a.sp.peekaboo && rng() < 0.7) return [{ k: "pose", pose: "boo", dur: BOO_S }];
   if (rng() < 0.5) return [{ k: "pose", pose: "trick", dur: 1.8 }];
   // The vanishing act: gone in a puff, back in a puff somewhere else.
   const spots = world.surfaces.filter((s) => s.id !== a.surface && s.x1 - s.x0 >= 1);
@@ -437,9 +457,7 @@ function decide(world: World, a: Actor, rng: Rng): Task[] {
     if (recent.length > 8) recent.shift();
     note(a, i);
     // Between journeys, a flourish now and then, so the mix keeps moving.
-    if (JOURNEYS.includes(i) && i !== "tour" && rng() < 0.35) {
-      tasks.push({ k: "pose", pose: rng() < 0.5 ? "wave" : "trick", dur: 1.3 });
-    }
+    if (JOURNEYS.includes(i) && i !== "tour" && rng() < 0.35) tasks.push(flourish(a, rng));
     return tasks;
   };
 
@@ -684,6 +702,8 @@ function begin(world: World, a: Actor, rng: Rng) {
       a.dur = task.dur;
       if (task.face) face(a, task.face);
       if (task.pose === "trick") puff(a, "sparkle", a.x, a.y + a.body.h + 0.2);
+      // the "BOO!" is timed by CSS to land on the pop, just past halfway
+      if (task.pose === "boo") puff(a, "boo", a.x + a.facing * 0.3, a.y + a.body.h + 0.25);
       return;
     case "swing":
       a.mode = "swing";
@@ -962,6 +982,7 @@ export function step(world: World, a: Actor, dt: number, rng: Rng): boolean {
       const f = a.fall!;
       const before = a.y;
       f.vy -= PHYS.gravity * dt;
+      if (a.sp.flies) f.vy = Math.max(f.vy, -FLOAT_FALL);
       a.y += f.vy * dt;
       // Land on whatever the whole footprint meets first, not just what is
       // under its centre — a body does not slip through a crack.

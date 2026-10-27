@@ -22,6 +22,104 @@ function Star({ x, y, fill }: { x: number; y: number; fill: string }) {
   return <rect x={x} y={y} width="2" height="2" fill={fill} />;
 }
 
+/* ---------- Halloween props, all in scene pixels ---------- */
+
+/** A full moon as stacked 2px rows, so its edge stays pixel-stepped. */
+function Moon({ cx, cy, r }: { cx: number; cy: number; r: number }) {
+  const rows = [];
+  for (let dy = -r; dy < r; dy += 2) {
+    const half = Math.round(Math.sqrt(r * r - (dy + 1) * (dy + 1)));
+    rows.push(<rect key={dy} x={cx - half} y={cy + dy} width={half * 2} height="2" fill="#f2eecb" />);
+  }
+  return (
+    <g>
+      {rows}
+      <g fill="#d8d2a6">
+        <rect x={cx - 7} y={cy - 6} width="5" height="4" /><rect x={cx + 3} y={cy + 1} width="6" height="4" />
+        <rect x={cx - 3} y={cy + 6} width="3" height="3" /><rect x={cx + 5} y={cy - 9} width="3" height="2" />
+      </g>
+    </g>
+  );
+}
+
+/** A bat crossing the sky; its wings swap between two frames. */
+function Bat({ y, dur, delay }: { y: number; dur: number; delay: number }) {
+  return (
+    <g transform={`translate(0 ${y})`}>
+      <g className="bat" style={{ animationDuration: `${dur}s`, animationDelay: `${delay}s` }}>
+        <g fill="#0b0612">
+          <rect x="-1" y="0" width="3" height="3" /><rect x="-1" y="-1" width="1" height="1" /><rect x="1" y="-1" width="1" height="1" />
+          <rect x="-2" y="1" width="1" height="1" /><rect x="2" y="1" width="1" height="1" />
+          <g className="bat-up">
+            <rect x="-5" y="-1" width="3" height="1" /><rect x="-7" y="-2" width="3" height="1" />
+            <rect x="3" y="-1" width="3" height="1" /><rect x="5" y="-2" width="3" height="1" />
+          </g>
+          <g className="bat-down">
+            <rect x="-5" y="2" width="3" height="1" /><rect x="-7" y="3" width="3" height="1" />
+            <rect x="3" y="2" width="3" height="1" /><rect x="5" y="3" width="3" height="1" />
+          </g>
+        </g>
+      </g>
+    </g>
+  );
+}
+
+function DeadTree({ x, y }: { x: number; y: number }) {
+  return (
+    <g fill="#0b0612">
+      <rect x={x} y={y - 26} width="3" height="26" /><rect x={x - 1} y={y - 2} width="5" height="2" />
+      <rect x={x - 6} y={y - 18} width="6" height="2" /><rect x={x - 8} y={y - 23} width="2" height="6" />
+      <rect x={x + 3} y={y - 14} width="7" height="2" /><rect x={x + 9} y={y - 20} width="2" height="7" />
+      <rect x={x + 1} y={y - 33} width="2" height="7" /><rect x={x - 4} y={y - 29} width="5" height="2" />
+      <rect x={x + 3} y={y - 25} width="5" height="2" /><rect x={x + 7} y={y - 28} width="2" height="3" />
+    </g>
+  );
+}
+
+function Tombstone({ x, y }: { x: number; y: number }) {
+  return (
+    <g>
+      <rect x={x + 2} y={y} width="8" height="2" fill="#4e4860" />
+      <rect x={x} y={y + 2} width="12" height="14" fill="#4e4860" />
+      <rect x={x + 2} y={y} width="8" height="1" fill="#6f6884" />
+      <rect x={x + 10} y={y + 2} width="2" height="14" fill="#36304a" />
+      <rect x={x + 3} y={y + 6} width="6" height="1" fill="#36304a" />
+      <rect x={x + 3} y={y + 9} width="6" height="1" fill="#36304a" />
+    </g>
+  );
+}
+
+function Cross({ x, y }: { x: number; y: number }) {
+  return (
+    <g>
+      <rect x={x + 3} y={y} width="3" height="18" fill="#4e4860" />
+      <rect x={x} y={y + 4} width="9" height="3" fill="#4e4860" />
+      <rect x={x + 3} y={y} width="3" height="1" fill="#6f6884" />
+      <rect x={x + 5} y={y + 7} width="1" height="11" fill="#36304a" />
+    </g>
+  );
+}
+
+/** A jack-o'-lantern standing on the ground at (x, y); its face flickers. */
+function Pumpkin({ x, y }: { x: number; y: number }) {
+  return (
+    <g>
+      <ellipse className="pumpkin-glow" cx={x + 7} cy={y} rx="16" ry="4" fill="#ff7a1a" fillOpacity="0.28" />
+      <rect x={x + 2} y={y - 10} width="10" height="1" fill="#e8701a" />
+      <rect x={x} y={y - 9} width="14" height="9" fill="#e8701a" />
+      <rect x={x} y={y - 1} width="14" height="1" fill="#b8500e" />
+      <rect x={x + 4} y={y - 9} width="1" height="8" fill="#b8500e" />
+      <rect x={x + 9} y={y - 9} width="1" height="8" fill="#b8500e" />
+      <rect x={x + 6} y={y - 12} width="2" height="2" fill="#3c6b2a" />
+      <g className="pumpkin-face" fill="#ffd25a">
+        <rect x={x + 2} y={y - 7} width="2" height="2" /><rect x={x + 10} y={y - 7} width="2" height="2" />
+        <rect x={x + 3} y={y - 4} width="8" height="1" /><rect x={x + 4} y={y - 3} width="1" height="1" />
+        <rect x={x + 9} y={y - 3} width="1" height="1" />
+      </g>
+    </g>
+  );
+}
+
 export function Scene({ theme }: { theme: Theme }) {
   const stars = useMemo(
     () => [
@@ -242,6 +340,76 @@ export function Scene({ theme }: { theme: Theme }) {
             <g fill="var(--ground-3)">
               <rect x="0" y="153" width="320" height="3" /><rect x="0" y="168" width="320" height="2" />
               <rect x="0" y="184" width="320" height="2" />
+            </g>
+          </g>
+        )}
+
+        {/* Halloween: the moon stays near the middle so a phone (which only
+            shows about x 115-205) still gets it, the haunted house and the
+            iron fence fill out wider screens. */}
+        {theme === "halloween" && (
+          <g>
+            {stars.map(([x, y], i) => <Star key={i} x={x} y={y} fill={i % 3 ? "var(--slate-4)" : "var(--paper-4)"} />)}
+            <Moon cx={168} cy={36} r={16} />
+            <Bat y={30} dur={17} delay={-3} />
+            <Bat y={56} dur={23} delay={-14} />
+            <Bat y={20} dur={29} delay={-21} />
+
+            <polygon points="0,134 36,124 78,128 120,120 168,128 214,118 262,126 300,120 320,124 320,146 0,146" fill="#1a0f26" />
+            <polygon points="0,140 18,124 50,112 84,110 112,116 140,130 164,142 0,142" fill="#140b20" />
+            <g fill="#0e0818">
+              <rect x="58" y="96" width="34" height="16" />
+              <polygon points="54,97 74,82 94,97" />
+              <rect x="84" y="80" width="10" height="20" />
+              <polygon points="82,81 89,64 96,81" />
+              <rect x="62" y="84" width="4" height="9" />
+            </g>
+            <g className="hw-window" fill="#ffb84a">
+              <rect x="62" y="100" width="4" height="4" />
+              <rect x="87" y="85" width="4" height="5" />
+            </g>
+            <rect x="72" y="100" width="4" height="4" fill="#2a1530" />
+            <rect x="73" y="105" width="5" height="7" fill="#2a1530" />
+
+            <DeadTree x={20} y={146} />
+            <DeadTree x={134} y={146} />
+            <DeadTree x={262} y={140} />
+
+            <g fill="#0b0612">
+              {Array.from({ length: 16 }, (_, i) => (
+                <g key={i}>
+                  <rect x={196 + i * 8} y={128} width="2" height="18" />
+                  <rect x={196 + i * 8} y={126} width="2" height="2" opacity="0.7" />
+                </g>
+              ))}
+              <rect x="194" y="132" width="126" height="2" />
+              <rect x="194" y="141" width="126" height="2" />
+            </g>
+
+            <rect x="0" y="144" width="320" height="56" fill="var(--ground-2)" />
+            <rect x="0" y="144" width="320" height="8" fill="url(#dground)" />
+            <g fill="var(--ground-3)">
+              <rect x="0" y="144" width="320" height="2" /><rect x="0" y="162" width="320" height="1" />
+              <rect x="0" y="180" width="320" height="1" />
+            </g>
+
+            <Tombstone x={180} y={140} />
+            <Cross x={226} y={138} />
+            <Tombstone x={284} y={142} />
+            <Tombstone x={34} y={146} />
+            <Pumpkin x={146} y={160} />
+            <Pumpkin x={200} y={170} />
+            <Pumpkin x={60} y={176} />
+            <Pumpkin x={262} y={180} />
+
+            <g className="fog" fill="#c9b8ee">
+              <rect x="-40" y="138" width="150" height="4" opacity="0.10" />
+              <rect x="70" y="146" width="200" height="5" opacity="0.08" />
+              <rect x="200" y="140" width="170" height="4" opacity="0.10" />
+            </g>
+            <g className="fog fog-slow" fill="#c9b8ee">
+              <rect x="-30" y="152" width="180" height="6" opacity="0.07" />
+              <rect x="160" y="156" width="200" height="5" opacity="0.07" />
             </g>
           </g>
         )}

@@ -99,8 +99,10 @@ them; a guess with no hits shows a single muted dash. Fill style (solid /
 hollow) carries the meaning as well as hue, so it survives colourblindness.
 The bars pop in one by one after the row lands, unless reduced motion is on.
 
-**One readable face: Fredoka.** The old pixel fonts made a 2 look like an S
-at small sizes. Fredoka keeps the chunky game feel and every digit is distinct.
+**One face: Luckiest Guy.** The old pixel fonts made a 2 look like an S at
+small sizes. Luckiest Guy is comic-book lettering with distinct digits. It has
+one weight and only capitals, so faux bold is switched off and body text gets
+a little extra letter-spacing.
 
 **Hold a digit key to rule it out (touch only).** A long press on the keypad
 toggles that digit in the notes instead of placing it, so phone players never

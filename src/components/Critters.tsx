@@ -14,117 +14,143 @@ import { buildWorld, type WorldInput } from "@/world/world";
  * the ground, and how big its body is, lives in world/sprites.ts.
  */
 
+/** Outline shared by every critter: thin, dark, rounded. */
+const INK = { stroke: "#1d1428", strokeWidth: 0.55, strokeLinejoin: "round", strokeLinecap: "round" } as const;
+const SOFT = { fill: "none", strokeLinecap: "round", strokeLinejoin: "round" } as const;
+
+/** Eye with a catch-light, so every face looks alive at 32px. */
+const Eye = ({ cx, cy, r }: { cx: number; cy: number; r: number }) => (
+  <g>
+    <circle cx={cx} cy={cy} r={r} fill="#221a2e" />
+    <circle cx={cx + r * 0.35} cy={cy - r * 0.38} r={r * 0.38} fill="#fff" />
+  </g>
+);
+
 const Owl = () => (
   <svg viewBox="0 0 16 16">
-    <rect x="2" y="0" width="2" height="3" fill="#8e9099" />
-    <rect x="12" y="0" width="2" height="3" fill="#8e9099" />
-    <rect x="2" y="2" width="12" height="8" fill="#d8dbe2" />
-    <rect x="2" y="2" width="12" height="2" fill="#f0f2f6" />
-    <rect x="3" y="4" width="10" height="5" fill="#f4f5f8" />
-    <rect x="3" y="4" width="4" height="4" fill="#fff" />
-    <rect x="9" y="4" width="4" height="4" fill="#fff" />
-    <rect x="4" y="5" width="2" height="2" fill="#3a3f4c" />
-    <rect x="10" y="5" width="2" height="2" fill="#3a3f4c" />
-    <rect x="7" y="7" width="2" height="2" fill="#e8a83c" />
-    <rect x="3" y="10" width="10" height="4" fill="#c9ccd4" />
-    <rect x="4" y="10" width="8" height="4" fill="#e4e7ec" />
-    <rect x="5" y="11" width="6" height="1" fill="#a9acb6" />
-    <rect x="5" y="13" width="6" height="1" fill="#a9acb6" />
-    <g className="arm">
-      <rect x="12" y="9" width="2" height="4" fill="#b4b7c1" />
-      <rect x="13" y="8" width="2" height="3" fill="#d8dbe2" />
+    <path d="M3.4 3.4 L3 0.4 L5.8 2.3 Z" fill="#767887" {...INK} />
+    <path d="M13.6 3.4 L14 0.4 L11.2 2.3 Z" fill="#767887" {...INK} />
+    <path d="M2.8 7.8 C1.6 9.4 1.8 11.9 3.3 13.1 C3.8 11.2 3.8 9.4 2.8 7.8 Z" fill="#9b9eac" {...INK} />
+    <path d="M8.5 1.6 C12.6 1.6 14.6 4.4 14.6 8.4 C14.6 12.4 12.4 14.6 8.5 14.6 C4.6 14.6 2.4 12.4 2.4 8.4 C2.4 4.4 4.4 1.6 8.5 1.6 Z" fill="#c4c7d3" {...INK} />
+    <path d="M4.2 4.2 C5.4 2.8 7 2.3 8.5 2.3" stroke="#e3e5ee" strokeWidth="0.7" {...SOFT} />
+    <ellipse cx="8.5" cy="10.9" rx="4" ry="3.3" fill="#eef0f5" />
+    <g stroke="#a3a6b4" strokeWidth="0.45" {...SOFT}>
+      <path d="M6.3 10 l0.7 0.6 0.7 -0.6" /><path d="M8.8 10 l0.7 0.6 0.7 -0.6" />
+      <path d="M7.5 11.8 l0.7 0.6 0.7 -0.6" /><path d="M6.3 13.2 l0.7 0.5 0.7 -0.5" /><path d="M8.8 13.2 l0.7 0.5 0.7 -0.5" />
     </g>
-    <rect x="2" y="9" width="2" height="4" fill="#b4b7c1" />
-    <g className="leg-l"><rect x="4" y="14" width="3" height="2" fill="#e8a83c" /></g>
-    <g className="leg-r"><rect x="9" y="14" width="3" height="2" fill="#e8a83c" /></g>
+    <circle cx="6.4" cy="6.4" r="2.35" fill="#f7f8fb" stroke="#a3a6b4" strokeWidth="0.35" />
+    <circle cx="10.8" cy="6.4" r="2.35" fill="#f7f8fb" stroke="#a3a6b4" strokeWidth="0.35" />
+    <Eye cx={6.8} cy={6.5} r={1.25} />
+    <Eye cx={11.2} cy={6.5} r={1.25} />
+    <path d="M8.1 7.7 L9.5 7.7 L8.8 9.3 Z" fill="#f2a93b" {...INK} strokeWidth={0.4} />
+    <g className="arm">
+      <path d="M14.3 7.4 C15.7 8.8 15.8 11.6 14.3 12.9 C13.7 11 13.6 9.2 14.3 7.4 Z" fill="#9b9eac" {...INK} />
+    </g>
+    <g className="leg-l"><rect x="4.6" y="14.2" width="2.7" height="1.8" rx="0.8" fill="#f2a93b" {...INK} strokeWidth={0.4} /></g>
+    <g className="leg-r"><rect x="9.7" y="14.2" width="2.7" height="1.8" rx="0.8" fill="#f2a93b" {...INK} strokeWidth={0.4} /></g>
   </svg>
 );
 
 const Crab = () => (
   <svg viewBox="0 0 16 16">
-    <rect x="5" y="1" width="1" height="3" fill="#d9401f" />
-    <rect x="10" y="1" width="1" height="3" fill="#d9401f" />
-    <rect x="4" y="0" width="3" height="2" fill="#fff" />
-    <rect x="9" y="0" width="3" height="2" fill="#fff" />
-    <rect x="5" y="0" width="1" height="1" fill="#1a1a22" />
-    <rect x="10" y="0" width="1" height="1" fill="#1a1a22" />
-    <rect x="2" y="4" width="12" height="6" fill="#e8502c" />
-    <rect x="2" y="4" width="12" height="1" fill="#ff7a50" />
-    <rect x="3" y="9" width="10" height="1" fill="#b32e14" />
-    <rect x="6" y="8" width="4" height="1" fill="#ffb08a" />
+    <g stroke="#b83a1c" strokeWidth="0.75" {...SOFT}>
+      <path d="M4.6 9.8 L3.2 11.4 L2.6 14" /><path d="M2.6 8.6 L1 10 L0.6 11.8" />
+      <path d="M11.4 9.8 L12.8 11.4 L13.4 14" /><path d="M13.4 8.6 L15 10 L15.4 11.8" />
+    </g>
+    <g className="leg-l" stroke="#b83a1c" strokeWidth="0.75" {...SOFT}>
+      <path d="M6.2 10.2 L5.4 12 L5.2 14" /><path d="M3.6 9.4 L2.2 10.8 L1.6 13" />
+    </g>
+    <g className="leg-r" stroke="#b83a1c" strokeWidth="0.75" {...SOFT}>
+      <path d="M9.8 10.2 L10.6 12 L10.8 14" /><path d="M12.4 9.4 L13.8 10.8 L14.4 13" />
+    </g>
+    <path d="M5.5 4.6 L5.5 2" stroke="#c8431f" strokeWidth="0.8" {...SOFT} />
+    <path d="M10.5 4.6 L10.5 2" stroke="#c8431f" strokeWidth="0.8" {...SOFT} />
+    <circle cx="5.5" cy="1.5" r="1.3" fill="#fff" {...INK} strokeWidth={0.4} />
+    <circle cx="10.5" cy="1.5" r="1.3" fill="#fff" {...INK} strokeWidth={0.4} />
+    <circle cx="5.9" cy="1.5" r="0.6" fill="#221a2e" /><circle cx="10.9" cy="1.5" r="0.6" fill="#221a2e" />
+    <path d="M2.2 6.8 C0.6 6.4 0 4.6 0.6 3.2 C1.2 2 2.6 2 2.9 3 L1.9 4 C2.5 4.6 2.7 5.6 2.2 6.8 Z" fill="#e4532c" {...INK} />
+    <path d="M2 7.2 C2 4.6 4.8 3.6 8 3.6 C11.2 3.6 14 4.6 14 7.2 C14 9.4 11.6 10.4 8 10.4 C4.4 10.4 2 9.4 2 7.2 Z" fill="#e4532c" {...INK} />
+    <path d="M2.6 8.2 C4 9.6 12 9.6 13.4 8.2 C12.6 9.8 3.4 9.8 2.6 8.2 Z" fill="#b8401f" />
+    <path d="M4 5.6 C5.4 4.6 7 4.3 8.4 4.4" stroke="#ff9c72" strokeWidth="0.7" {...SOFT} />
+    <circle cx="10.9" cy="5.9" r="0.5" fill="#ff8a5e" /><circle cx="11.9" cy="7.2" r="0.35" fill="#ff8a5e" />
+    <path d="M7 7.9 q1 0.7 2 0" stroke="#221a2e" strokeWidth="0.45" {...SOFT} />
+    <circle cx="5.3" cy="7.6" r="0.55" fill="#ff9aa0" opacity="0.8" /><circle cx="10.7" cy="7.6" r="0.55" fill="#ff9aa0" opacity="0.8" />
     <g className="arm">
-      <rect x="14" y="5" width="2" height="2" fill="#e8502c" />
-      <rect x="14" y="2" width="2" height="3" fill="#ff7a50" />
+      <path d="M13.8 6.8 C15.4 6.4 16 4.6 15.4 3.2 C14.8 2 13.4 2 13.1 3 L14.1 4 C13.5 4.6 13.3 5.6 13.8 6.8 Z" fill="#e4532c" {...INK} />
     </g>
-    <rect x="0" y="5" width="2" height="2" fill="#e8502c" />
-    <rect x="0" y="2" width="2" height="3" fill="#ff7a50" />
-<g className="leg-l">
-      <rect x="4" y="10" width="1" height="1" fill="#d9401f" />
-      <rect x="3" y="11" width="1" height="1" fill="#d9401f" />
-      <rect x="2" y="12" width="1" height="2" fill="#b32e14" />
-      <rect x="6" y="10" width="1" height="2" fill="#d9401f" />
-      <rect x="5" y="12" width="1" height="2" fill="#b32e14" />
-    </g>
-    <g className="leg-r">
-      <rect x="11" y="10" width="1" height="1" fill="#d9401f" />
-      <rect x="12" y="11" width="1" height="1" fill="#d9401f" />
-      <rect x="13" y="12" width="1" height="2" fill="#b32e14" />
-      <rect x="9" y="10" width="1" height="2" fill="#d9401f" />
-      <rect x="10" y="12" width="1" height="2" fill="#b32e14" />
-    </g>
-    {/* the outermost pair, tucked up beside the shell */}
-    <rect x="1" y="8" width="1" height="1" fill="#d9401f" />
-    <rect x="0" y="9" width="1" height="2" fill="#b32e14" />
-    <rect x="14" y="8" width="1" height="1" fill="#d9401f" />
-    <rect x="15" y="9" width="1" height="2" fill="#b32e14" />
   </svg>
 );
 
 const Penguin = () => (
   <svg viewBox="0 0 16 16">
-    <rect x="4" y="1" width="8" height="7" fill="#25252e" />
-    <rect x="5" y="3" width="6" height="4" fill="#fff" />
-    <rect x="5" y="3" width="2" height="2" fill="#25252e" />
-    <rect x="9" y="3" width="2" height="2" fill="#25252e" />
-    <rect x="7" y="6" width="2" height="2" fill="#f2a03c" />
-    <rect x="3" y="8" width="10" height="6" fill="#25252e" />
-    <rect x="5" y="8" width="6" height="6" fill="#fff" />
+    <path d="M3.9 7 C2.4 8.4 2 10.7 2.6 12.3 C3.5 11.3 3.9 9.6 3.9 7 Z" fill="#2c2c3a" {...INK} />
+    <path d="M8.5 1.2 C11.6 1.2 13.2 3.6 13.2 6.6 L13.4 11 C13.4 13.4 11.4 14.6 8.5 14.6 C5.6 14.6 3.6 13.4 3.6 11 L3.8 6.6 C3.8 3.6 5.4 1.2 8.5 1.2 Z" fill="#2c2c3a" {...INK} />
+    <path d="M5.6 3.2 C6.4 2.2 7.4 1.9 8.5 1.9" stroke="#55556a" strokeWidth="0.6" {...SOFT} />
+    <path d="M8.5 5.2 C10.8 5.2 11.8 7 11.8 9.3 C11.8 12 10.6 13.8 8.5 13.8 C6.4 13.8 5.2 12 5.2 9.3 C5.2 7 6.2 5.2 8.5 5.2 Z" fill="#fbfbff" />
+    <path d="M5.3 6.4 C5.1 4.2 6.4 3.2 8.5 3.8 C10.6 3.2 11.9 4.2 11.7 6.4 C10.6 7 6.4 7 5.3 6.4 Z" fill="#fbfbff" />
+    <path d="M10.6 9 C10.8 10.8 10.2 12.4 9 13.2" stroke="#dcdcea" strokeWidth="0.6" {...SOFT} />
+    <Eye cx={7.3} cy={4.9} r={0.75} />
+    <Eye cx={10.3} cy={4.9} r={0.75} />
+    <path d="M8.2 5.9 L10.4 6.3 L8.2 7 Z" fill="#f2a03c" {...INK} strokeWidth={0.35} />
+    <circle cx="6.3" cy="6.4" r="0.5" fill="#ffb3c1" opacity="0.85" /><circle cx="11.2" cy="6.4" r="0.5" fill="#ffb3c1" opacity="0.85" />
     <g className="arm">
-      <rect x="12" y="8" width="2" height="5" fill="#25252e" />
-      <rect x="13" y="7" width="2" height="3" fill="#3a3a48" />
+      <path d="M13.1 7 C14.6 8 15.3 10 14.9 11.9 C14 11.1 13.4 9.4 13.1 7 Z" fill="#3a3a4c" {...INK} />
     </g>
-    <rect x="2" y="8" width="2" height="5" fill="#25252e" />
-    <g className="leg-l"><rect x="4" y="14" width="3" height="2" fill="#f2a03c" /></g>
-    <g className="leg-r"><rect x="9" y="14" width="3" height="2" fill="#f2a03c" /></g>
+    <g className="leg-l"><ellipse cx="6.2" cy="15.1" rx="1.7" ry="0.85" fill="#f2a03c" {...INK} strokeWidth={0.4} /></g>
+    <g className="leg-r"><ellipse cx="10.8" cy="15.1" rx="1.7" ry="0.85" fill="#f2a03c" {...INK} strokeWidth={0.4} /></g>
   </svg>
 );
 
 const Squirrel = () => (
   <svg viewBox="0 0 16 16">
-    <rect x="11" y="1" width="2" height="2" fill="#b85a22" />
-    <rect x="5" y="1" width="2" height="2" fill="#b85a22" />
-    <rect x="4" y="3" width="10" height="6" fill="#d97a2e" />
-    <rect x="4" y="3" width="10" height="1" fill="#f0a254" />
-    <rect x="11" y="5" width="2" height="2" fill="#fff" />
-    <rect x="7" y="5" width="2" height="2" fill="#fff" />
-    <rect x="11" y="5" width="1" height="2" fill="#1f140c" />
-    <rect x="7" y="5" width="1" height="2" fill="#1f140c" />
-    <rect x="5" y="9" width="8" height="5" fill="#d97a2e" />
-    <rect x="6" y="10" width="6" height="3" fill="#f5c08a" />
+    <path d="M5.2 12.8 C1.4 13.2 -0.1 10 0.4 7.2 C0.9 4.4 2.4 2.4 4.6 2.7 C3.3 4.3 3.4 6 4.7 7.2 C5.8 8.3 6 10.7 5.2 12.8 Z" fill="#c4672a" {...INK} />
+    <path d="M2 5 C1.3 6.7 1.3 8.9 2.5 10.7" stroke="#f0a864" strokeWidth="0.8" {...SOFT} />
+    <g className="leg-l"><ellipse cx="7.3" cy="15.1" rx="1.6" ry="0.85" fill="#a9521c" {...INK} strokeWidth={0.4} /></g>
+    <g className="leg-r"><ellipse cx="11" cy="15.1" rx="1.6" ry="0.85" fill="#a9521c" {...INK} strokeWidth={0.4} /></g>
+    <ellipse cx="9" cy="11.5" rx="3.6" ry="3.2" fill="#d77d38" {...INK} />
+    <ellipse cx="9.7" cy="11.9" rx="2.1" ry="2.3" fill="#f6cf9c" />
+    <path d="M7 4.1 L6.5 1.2 L8.9 3.2 Z" fill="#a9521c" {...INK} />
+    <path d="M11 3.4 L12.1 1 L12.9 3.9 Z" fill="#a9521c" {...INK} />
+    <ellipse cx="9.7" cy="6.4" rx="3.8" ry="3.2" fill="#d77d38" {...INK} />
+    <path d="M7.2 4.2 C8.2 3.5 9.6 3.3 10.8 3.6" stroke="#f0a864" strokeWidth="0.6" {...SOFT} />
+    <ellipse cx="12.1" cy="7.5" rx="1.6" ry="1.2" fill="#f6cf9c" />
+    <circle cx="13.5" cy="7" r="0.5" fill="#221a2e" />
+    <Eye cx={8.6} cy={5.9} r={0.75} />
+    <Eye cx={11.3} cy={5.8} r={0.8} />
+    <circle cx="10.4" cy="7.6" r="0.5" fill="#ff9aa0" opacity="0.8" />
     <g className="arm">
-      <rect x="4" y="9" width="2" height="3" fill="#d97a2e" />
-      <rect x="3" y="8" width="2" height="2" fill="#f0a254" />
+      <path d="M11.4 8.6 C12.7 8.8 13.3 9.9 12.9 10.9 C12 10.7 11.4 9.8 11.4 8.6 Z" fill="#c4672a" {...INK} />
     </g>
-    <rect x="1" y="4" width="3" height="8" fill="#b85a22" />
-    <rect x="0" y="3" width="3" height="7" fill="#f0a254" />
-    <rect x="0" y="5" width="2" height="4" fill="#ffd6a0" />
-    <g className="leg-l"><rect x="5" y="14" width="3" height="2" fill="#b85a22" /></g>
-    <g className="leg-r"><rect x="10" y="14" width="3" height="2" fill="#b85a22" /></g>
+  </svg>
+);
+
+/** Halloween's critter: a little sheet ghost with rosy cheeks and an "o"
+ *  mouth. The two outer tatters of its hem are its legs, so they flutter as
+ *  it floats along. */
+const Ghost = () => (
+  <svg viewBox="0 0 16 16">
+    <g className="leg-l"><path d="M2.6 12 L5.9 12 L5.3 14.6 C4.7 15.8 3.2 15.8 2.6 14.8 Z" fill="#ece8fb" {...INK} /></g>
+    <path d="M5.6 12 L11 12 L10.4 14.6 C9.6 15.7 7 15.7 6.2 14.6 Z" fill="#f6f3ff" {...INK} />
+    <g className="leg-r"><path d="M10.7 12 L14 12 L14 14.8 C13.4 15.8 11.9 15.8 11.3 14.6 Z" fill="#ece8fb" {...INK} /></g>
+    <path d="M2.6 13.4 L2.6 7.2 C2.6 3.6 4.8 1.2 8.3 1.2 C11.8 1.2 14 3.6 14 7.2 L14 13.4 Z" fill="#f6f3ff" />
+    <path d="M2.6 13.4 L2.6 7.2 C2.6 3.6 4.8 1.2 8.3 1.2 C11.8 1.2 14 3.6 14 7.2 L14 13.4" {...INK} fill="none" />
+    <path d="M3.5 6 C3.3 8.4 3.5 11 3.7 13.2" stroke="#d9d3ef" strokeWidth="1" {...SOFT} />
+    <path d="M5.4 2.9 C6.3 2.2 7.3 1.9 8.3 1.9" stroke="#ffffff" strokeWidth="0.7" {...SOFT} />
+    <path d="M2.8 8.6 C1.6 8.8 1 9.8 1.4 10.8 C2 10.6 2.6 10 2.8 9.4 Z" fill="#ece8fb" {...INK} />
+    <ellipse cx="7.8" cy="6.4" rx="0.95" ry="1.3" fill="#221a2e" />
+    <ellipse cx="11.4" cy="6.4" rx="0.95" ry="1.3" fill="#221a2e" />
+    <circle cx="8.1" cy="5.9" r="0.38" fill="#fff" /><circle cx="11.7" cy="5.9" r="0.38" fill="#fff" />
+    <ellipse cx="6.5" cy="8.5" rx="0.75" ry="0.45" fill="#ffadc6" />
+    <ellipse cx="12.7" cy="8.5" rx="0.75" ry="0.45" fill="#ffadc6" />
+    <ellipse cx="9.6" cy="9.4" rx="0.7" ry="0.9" fill="#221a2e" />
+    <g className="arm">
+      <path d="M13.8 7.6 C15.2 7 16 5.6 15.6 4.5 C14.8 4.7 14 5.7 13.8 7 Z" fill="#f6f3ff" {...INK} />
+    </g>
   </svg>
 );
 
 const ART_FOR: Record<CritterKind, () => JSX.Element> = {
-  owl: Owl, crab: Crab, penguin: Penguin, squirrel: Squirrel,
+  owl: Owl, crab: Crab, penguin: Penguin, squirrel: Squirrel, ghost: Ghost,
 };
 
 /** Re-measure only when the layout actually moved, so a walk is never
@@ -161,7 +187,10 @@ function paint(els: Els, a: Actor, input: WorldInput, saying: boolean) {
   const snap = (v: number) => Math.round(v / s) * s;
 
   const left = snap(X(a.x) - meta.foot.x * s);
-  const top = snap(Y(a.y) - meta.foot.y * s);
+  // a flier hovers over whatever it is on, except while coming up from
+  // behind the table's edge (the clip there is measured from the feet)
+  const lift = meta.hover && a.mode !== "rise" && a.mode !== "sink" ? meta.hover * s : 0;
+  const top = snap(Y(a.y) - meta.foot.y * s - lift);
   const { actor, flip, thread } = els;
 
   actor.style.visibility = a.visible ? "visible" : "hidden";
@@ -179,7 +208,8 @@ function paint(els: Els, a: Actor, input: WorldInput, saying: boolean) {
   actor.dataset.mode = a.mode;
   actor.dataset.moving = String(a.moving);
 
-  if (a.thread) {
+  // a flier needs no thread: it simply floats down from the top, and away
+  if (a.thread && !a.sp.flies) {
     const ax = X(a.thread.x);
     const ay = Y(a.thread.top);
     const hands = top + meta.top * s + s;
@@ -232,10 +262,16 @@ function paint(els: Els, a: Actor, input: WorldInput, saying: boolean) {
   for (const f of a.fx.splice(0)) {
     const el = document.createElement("div");
     el.className = `fx fx-${f.kind}`;
-    el.style.transform = `translate3d(${X(f.x)}px, ${Y(f.y)}px, 0)`;
-    for (let i = 0; i < 6; i++) el.appendChild(document.createElement("i"));
+    el.style.transform = `translate3d(${X(f.x)}px, ${Y(f.y) - lift}px, 0)`;
+    if (f.kind === "boo") {
+      const word = document.createElement("b");
+      word.textContent = "BOO!";
+      el.appendChild(word);
+    } else {
+      for (let i = 0; i < 6; i++) el.appendChild(document.createElement("i"));
+    }
     els.fx.appendChild(el);
-    window.setTimeout(() => el.remove(), 900);
+    window.setTimeout(() => el.remove(), f.kind === "boo" ? 2400 : 900);
   }
 }
 

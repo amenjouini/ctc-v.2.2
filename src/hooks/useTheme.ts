@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-export const THEMES = ["dusk", "beach", "snow", "autumn"] as const;
+export const THEMES = ["dusk", "beach", "snow", "autumn", "halloween"] as const;
 export type Theme = (typeof THEMES)[number];
 
 const KEY = "ctc.theme";

@@ -10,6 +10,7 @@ export const CRITTER_FOR: Record<Theme, CritterKind> = {
   beach: "crab",
   snow: "penguin",
   autumn: "squirrel",
+  halloween: "ghost",
 };
 
 export interface Spawn {
