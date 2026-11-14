@@ -1,0 +1,53 @@
+{
+ "_format": "Same format as critters.json: 32x32, rows[y][x] is a palette key, \".\" is transparent, light from the top-left.",
+ "ghost": {
+  "width": 32,
+  "height": 32,
+  "palette": {
+   "a": "#3d3460",
+   "b": "#ffffff",
+   "c": "#f1edfa",
+   "d": "#dcd5ef",
+   "e": "#bdb3da",
+   "f": "#9a8fc0",
+   "g": "#1e1833",
+   "i": "#f59ab8",
+   "j": "#2a2244",
+   "k": "#e46f8d"
+  },
+  "rows": [
+   "................................",
+   "................................",
+   "................................",
+   "................................",
+   "................................",
+   "................................",
+   "............aaaaaaaa............",
+   "..........aabcccccddaa..........",
+   ".........abbbcccccdddda.........",
+   "........abbbcccccdddddda........",
+   ".......abbbcccccddddddddaeaa....",
+   "......acbcccccccddddddddeeeea...",
+   "......acccccccgdddddgdddeeeea...",
+   "......accccccbggdddbggdeeeefa...",
+   "....aaacccccdgggdddgggdeeeefa...",
+   "...addcccccddgggdddgggeeeeffa...",
+   "...addddddddddgdddddgeeeeeffa...",
+   "...adddddddiiddddddddeiieeaa....",
+   "...adddddddddddddjddeeeeeea.....",
+   "...addddddddddddjkjeeeeeffa.....",
+   "....aadddddddddddjeeeeeeffa.....",
+   ".....addddddddddeeeeeeefffa.....",
+   ".....aedddddddeeeeeeeeffffa.....",
+   ".....aeedddeeeeeeeeeefffffa.....",
+   ".....aeeeeeeeeeeeeefffffffa.....",
+   ".....aeeeeeeeeeeeeffffffffa.....",
+   "......aeeeeeeeeefffffffffa......",
+   "......aeeeefaaffffaafffffa......",
+   ".......aaefa..affa..affaa.......",
+   ".........aa....aa....aa.........",
+   "................................",
+   "................................"
+  ]
+ }
+}

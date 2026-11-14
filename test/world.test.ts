@@ -1,8 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildWorld, planArc, standRange, type WorldInput } from "../src/world/world";
-import { isValidPlacement, rehome, spawnActor, step, type Actor, type Intent, type Routine } from "../src/world/actor";
+import { SPECIES, isValidPlacement, rehome, spawnActor, step, type Actor, type Intent, type Routine } from "../src/world/actor";
 import { SPRITES, bodyOf, type CritterKind } from "../src/world/sprites";
+import { EYES, OUTFITS, PIXEL_ART, framesFor, scale2x } from "../src/world/pixelArt";
+import critters from "../assets/critters.json";
+import ghost from "../assets/ghost.json";
 
 /** Deterministic randomness so a failure can be replayed. */
 function rng(seed: number) {
@@ -51,8 +54,11 @@ const walled: WorldInput = {
 };
 
 test("the crab's contact point is where its legs end, not the image's bottom row", () => {
-  assert.equal(SPRITES.crab.foot.y, 14);
-  assert.equal(SPRITES.owl.foot.y, 16);
+  // the 32x32 crab's legs end on row 29: its feet are at 30, two rows above
+  // the bottom of its image
+  assert.equal(SPRITES.crab.grid, 32);
+  assert.equal(SPRITES.crab.foot.y, 30);
+  assert.equal(SPRITES.owl.foot.y, 30);
   assert.ok(bodyOf("crab").h < bodyOf("owl").h);
 });
 
@@ -127,7 +133,7 @@ function simulate(input: WorldInput, kind: CritterKind, seed: number, routine?: 
 }
 
 test("critters stay physically valid and always leave (property run)", () => {
-  const kinds: CritterKind[] = ["owl", "crab", "penguin", "squirrel", "ghost"];
+  const kinds: CritterKind[] = ["owl", "crab", "penguin", "fox", "ghost"];
   let runs = 0;
   for (const input of [desktop, cramped, walled]) {
     for (const kind of kinds) {
@@ -154,10 +160,108 @@ test("a visit is a mix: no action twice in a row, several different ones", () =>
 
 test("every kind of action happens on a roomy desktop", () => {
   const seen = new Set<Intent>();
-  for (const kind of ["owl", "squirrel", "crab"] as CritterKind[]) {
+  for (const kind of ["owl", "fox", "crab"] as CritterKind[]) {
     for (let seed = 1; seed <= 25; seed++) simulate(desktop, kind, seed).intents.forEach((i) => seen.add(i));
   }
   for (const i of ["climb", "letters", "swing", "tour", "wave", "trick"] as Intent[]) assert.ok(seen.has(i), `never saw ${i}`);
+});
+
+test("the penguin belly-slides: fast, flat along its surface, and only the penguin", () => {
+  const r = rng(5);
+  const world = buildWorld(desktop)!;
+  const a = spawnActor(world, "penguin", r, "slide")!;
+  let slid = 0, fastest = 0, lastX = a.x;
+  for (let tick = 0; tick < 30 * 60; tick++) {
+    step(world, a, 1 / 60, r);
+    if (a.pose === "slide") {
+      slid++;
+      fastest = Math.max(fastest, Math.abs(a.x - lastX) * 60);
+      assert.equal(a.mode, "walk", "a slide moves along the surface");
+      assert.ok(isValidPlacement(world, a), "stays on what it slides on");
+    }
+    lastX = a.x;
+  }
+  assert.ok(slid > 0, "it slid");
+  assert.ok(fastest > SPECIES.penguin.speed * 2, `faster than its walk (${fastest.toFixed(2)})`);
+  for (const kind of ["owl", "crab", "fox", "ghost"] as CritterKind[]) assert.equal(SPECIES[kind].weights.slide, 0, `${kind} never slides`);
+});
+
+test("the critters are drawn from assets/critters.json and ghost.json, and the files are well-formed", () => {
+  const files = { ...critters, ...ghost } as Record<string, unknown>;
+  for (const kind of ["owl", "fox", "crab", "penguin", "ghost"] as const) {
+    const art = PIXEL_ART[kind];
+    assert.equal(art, files[kind], `${kind} comes straight from its JSON`);
+    assert.equal(art.rows.length, art.height, `${kind}: ${art.height} rows`);
+    art.rows.forEach((row, y) => {
+      assert.equal(row.length, art.width, `${kind} row ${y} is ${art.width} wide`);
+      for (const ch of row) assert.ok(ch === "." || ch in art.palette, `${kind} row ${y}: "${ch}" is in the palette`);
+    });
+  }
+});
+
+test("animation frames are well-formed: 32x32 in the critter's own palette, every movement has pictures", () => {
+  for (const kind of Object.keys(PIXEL_ART) as (keyof typeof PIXEL_ART)[]) {
+    const art = PIXEL_ART[kind];
+    const { images, states } = framesFor(kind);
+    for (const [name, rows] of Object.entries(images)) {
+      assert.equal(rows.length, art.height, `${kind}/${name}: ${art.height} rows`);
+      rows.forEach((row, y) => {
+        assert.equal(row.length, art.width, `${kind}/${name} row ${y}`);
+        for (const ch of row) assert.ok(ch === "." || ch in art.palette, `${kind}/${name} row ${y}: "${ch}" is in the palette`);
+      });
+    }
+    for (const [state, spec] of Object.entries(states)) {
+      assert.ok(spec.fps > 0 && spec.frames.length > 0, `${kind} ${state} plays something`);
+      for (const f of spec.frames) assert.ok(f in images, `${kind} ${state}: picture "${f}" exists`);
+    }
+  }
+  assert.ok(Object.keys(framesFor("crab").images).length > 4, "the crab has its own drawn frames");
+});
+
+test("every jump starts with a crouch and ends with a landing squash", () => {
+  let jumps = 0;
+  for (let seed = 1; seed <= 12; seed++) {
+    const r = rng(seed);
+    const world = buildWorld(desktop)!;
+    const a = spawnActor(world, "crab", r, "box");
+    if (!a) continue;
+    let prevMode = a.mode, prevPose = a.pose;
+    for (let tick = 0; tick < 40 * 60 && step(world, a, 1 / 60, r); tick++) {
+      if (a.mode === "jump" && prevMode !== "jump") {
+        jumps++;
+        assert.equal(prevPose, "crouch", `seed ${seed}: crouches before jumping (${a.log.join(" > ")})`);
+      }
+      if (prevMode === "jump" && a.mode !== "jump" && a.mode !== "hang") assert.equal(a.pose, "land", `seed ${seed}: squashes on landing`);
+      prevMode = a.mode;
+      prevPose = a.pose;
+    }
+  }
+  assert.ok(jumps > 0, "some jumps happened");
+});
+
+test("outfits and eyelids fit the 32x32 art, and smoothing keeps the exact colours", () => {
+  for (const kind of Object.keys(PIXEL_ART) as (keyof typeof PIXEL_ART)[]) {
+    const art = PIXEL_ART[kind];
+    for (const o of OUTFITS[kind]) o.rows.forEach((row, dy) => [...row].forEach((ch, dx) => {
+      if (ch === ".") return;
+      assert.ok(ch in o.palette, `${kind} outfit: "${ch}" is in its palette`);
+      assert.ok(o.x + dx < art.width && o.y + dy < art.height, `${kind} outfit stays inside the sprite`);
+    }));
+    const eyes = EYES[kind];
+    const shut = eyes.boxes.flatMap(([x0, y0, x1, y1]) => {
+      const hits: string[] = [];
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (eyes.chars.includes(art.rows[y][x])) hits.push(`${x},${y}`);
+      return hits;
+    });
+    assert.ok(shut.length >= 4, `${kind}: the eye boxes find its eyes (${shut.length} pixels)`);
+
+    const grid = art.rows.map((r) => [...r].map((ch) => (ch === "." ? "" : art.palette[ch])));
+    const big = scale2x(grid);
+    assert.equal(big.length, art.height * 2);
+    assert.equal(big[0].length, art.width * 2);
+    const before = new Set(grid.flat()), after = new Set(big.flat());
+    for (const c of after) assert.ok(before.has(c), `${kind}: smoothing invents no colour (${c})`);
+  }
 });
 
 test("a tour goes all the way round and comes back to where it started", () => {

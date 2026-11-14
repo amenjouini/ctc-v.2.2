@@ -30,9 +30,9 @@ import {
   type World,
 } from "./world";
 
-export type Intent = "stroll" | "explore" | "climb" | "letters" | "swing" | "tour" | "wave" | "trick";
-export type Routine = "walk" | "box" | "letters" | "swing" | "tour" | "dangle" | "trick" | "peek" | "speak";
-export type Pose = "stand" | "walk" | "air" | "hang" | "wave" | "trick" | "look" | "talk" | "boo";
+export type Intent = "stroll" | "explore" | "climb" | "letters" | "swing" | "tour" | "wave" | "trick" | "slide";
+export type Routine = "walk" | "box" | "letters" | "swing" | "tour" | "dangle" | "trick" | "peek" | "speak" | "slide";
+export type Pose = "stand" | "walk" | "air" | "hang" | "wave" | "trick" | "look" | "talk" | "boo" | "slide" | "crouch" | "land";
 
 /** How long a critter holds up a message if nobody taps it away. */
 const TALK_S = 20;
@@ -62,20 +62,32 @@ export interface Species {
 const BOO_S = 2.2;
 /** A flier never drops faster than this, units / s. */
 const FLOAT_FALL = 2.4;
+/** A quick crouch before every jump, and a squash on every landing, seconds:
+ *  the anticipation and follow-through that give a hop its weight. */
+const CROUCH_S = 0.12;
+const LAND_S = 0.14;
+/** A walk speeds up from a stop and slows into one over this far, units. */
+const EASE = 0.35;
+/** A belly slide starts this many times faster than the walk… */
+const SLIDE_BOOST = 3.4;
+/** …and coasts to a stop over the last stretch, units. */
+const SLIDE_COAST = 1.2;
 
 export const SPECIES: Record<CritterKind, Species> = {
-  owl: { speed: 1.3, burst: 0, maxUp: 2.9, sideways: false,
-    weights: { stroll: 1, explore: 1, climb: 3, letters: 3, swing: 2, tour: 3, wave: 2, trick: 3 } },
-  penguin: { speed: 0.9, burst: 0, maxUp: 2.9, sideways: false,
-    weights: { stroll: 2, explore: 2, climb: 1, letters: 1, swing: 1, tour: 3, wave: 3, trick: 2 } },
-  squirrel: { speed: 3, burst: 1.6, maxUp: 3.2, sideways: false,
-    weights: { stroll: 1, explore: 1, climb: 3, letters: 3, swing: 3, tour: 3, wave: 1, trick: 2 } },
-  crab: { speed: 2.2, burst: 1.3, maxUp: 3, sideways: true,
-    weights: { stroll: 1, explore: 2, climb: 2, letters: 2, swing: 2, tour: 4, wave: 2, trick: 3 } },
+  owl: { speed: 1, burst: 0, maxUp: 2.9, sideways: false,
+    weights: { stroll: 1, explore: 1, climb: 3, letters: 3, swing: 2, tour: 3, wave: 2, trick: 3, slide: 0 } },
+  // walks most of the time; now and then crouches, flops on its belly and slides
+  penguin: { speed: 0.7, burst: 0, maxUp: 2.9, sideways: false,
+    weights: { stroll: 2, explore: 2, climb: 1, letters: 1, swing: 1, tour: 3, wave: 0, trick: 2, slide: 2 } },
+  // quick and bouncy, stop-and-go; its tail is what it waves
+  fox: { speed: 1.7, burst: 1.4, maxUp: 3.2, sideways: false,
+    weights: { stroll: 1, explore: 2, climb: 3, letters: 3, swing: 2, tour: 3, wave: 2, trick: 2, slide: 0 } },
+  crab: { speed: 1.5, burst: 1.3, maxUp: 3, sideways: true,
+    weights: { stroll: 1, explore: 2, climb: 2, letters: 2, swing: 2, tour: 4, wave: 2, trick: 3, slide: 0 } },
   // a small sheet ghost: floats about, haunts the letters, plays peek-a-boo.
   // It has no hands to swing by and no feet to walk round the table on.
-  ghost: { speed: 1.2, burst: 0, maxUp: 3.2, sideways: false, flies: true, peekaboo: true,
-    weights: { stroll: 2, explore: 3, climb: 3, letters: 3, swing: 0, tour: 0, wave: 2, trick: 4 } },
+  ghost: { speed: 0.9, burst: 0, maxUp: 3.2, sideways: false, flies: true, peekaboo: true,
+    weights: { stroll: 2, explore: 3, climb: 3, letters: 3, swing: 0, tour: 0, wave: 0, trick: 4, slide: 0 } },
 };
 
 /** How far the arms reach above the head when hanging. */
@@ -92,9 +104,9 @@ const TOUR_PACE = 0.8;
 const TOUR_MAX_S = 25;
 
 type Task =
-  | { k: "walk"; x: number }
+  | { k: "walk"; x: number; slide?: boolean }
   | { k: "jump"; to: { x: number; y: number }; land: string | null; lift: number; grip?: Grip }
-  | { k: "pose"; pose: "stand" | "wave" | "trick" | "look" | "talk" | "boo"; dur: number; face?: 1 | -1 }
+  | { k: "pose"; pose: "stand" | "wave" | "trick" | "look" | "talk" | "boo" | "crouch" | "land"; dur: number; face?: 1 | -1 }
   | { k: "swing"; grips: Grip[] }
   | { k: "tour"; dir: 1 | -1 }
   | { k: "drop" }
@@ -105,7 +117,7 @@ type Task =
 
 export interface FX {
   id: number;
-  kind: "puff" | "sparkle" | "boo";
+  kind: "puff" | "sparkle" | "boo" | "dust";
   x: number;
   y: number;
 }
@@ -155,7 +167,7 @@ export interface Actor {
   swing?: { grips: Grip[]; i: number };
   tour?: TourState;
   fall?: { vy: number };
-  walk?: { target: number; dash: number };
+  walk?: { target: number; dash: number; slide?: boolean; from: number };
   from?: number;
   to?: number;
   next?: { x: number; surface: Surface } | null;
@@ -251,6 +263,7 @@ function route(world: World, actor: Actor, goal: Surface): Task[] | null {
   for (let id = goal.id; id !== start.id; id = prev.get(id)!.from) hops.unshift(prev.get(id)!.hop);
   return hops.flatMap((h): Task[] => [
     { k: "walk", x: h.take },
+    { k: "pose", pose: "crouch", dur: CROUCH_S },
     { k: "jump", to: h.land, land: h.to.id, lift: 0.4 },
   ]);
 }
@@ -276,6 +289,25 @@ function strollTasks(world: World, a: Actor, rng: Rng): Task[] | null {
   let x = between(rng, r0, r1);
   if (Math.abs(x - a.x) < 0.8) x = a.x < (r0 + r1) / 2 ? r1 : r0;
   return [{ k: "walk", x }, { k: "pose", pose: "look", dur: between(rng, 0.5, 1) }];
+}
+
+/** A belly slide (penguin): a run-up, then flat on its tummy across what
+ *  it stands on, coasting to a stop. Needs a good stretch of room. */
+function slideTasks(world: World, a: Actor, rng: Rng): Task[] | null {
+  const s = surfaceById(world, a.surface);
+  if (!s) return null;
+  const [r0, r1] = standRange(s, a.body.hw);
+  const room = Math.max(a.x - r0, r1 - a.x);
+  if (room < 2.5) return null;
+  const dir = a.x - r0 > r1 - a.x ? -1 : 1;
+  const run = clamp(room * between(rng, 0.55, 0.9), 2.5, 7);
+  return [
+    { k: "pose", pose: "look", dur: 0.4, face: dir },
+    { k: "pose", pose: "crouch", dur: CROUCH_S * 1.5 },
+    { k: "walk", x: a.x + dir * run, slide: true },
+    { k: "pose", pose: "land", dur: LAND_S },
+    { k: "pose", pose: "look", dur: 0.7 },
+  ];
 }
 
 /** Head for somewhere on the table. If something solid is in the way the
@@ -344,7 +376,7 @@ function lettersTasks(world: World, a: Actor, rng: Rng): Task[] | null {
     for (let j = i + 1; j < tops.length && count < want; j++) {
       const hop = findHop(world, surfaceById(world, ghost.surface)!, tops[j], ghost);
       if (!hop) break;
-      tasks.push({ k: "walk", x: hop.take }, { k: "jump", to: hop.land, land: tops[j].id, lift: 0.4 });
+      tasks.push({ k: "walk", x: hop.take }, { k: "pose", pose: "crouch", dur: CROUCH_S }, { k: "jump", to: hop.land, land: tops[j].id, lift: 0.4 });
       ghost.surface = tops[j].id;
       count++;
     }
@@ -386,6 +418,7 @@ function swingTasks(world: World, a: Actor, rng: Rng): Task[] | null {
       if (planArc(world, { x: take, y: s.y }, { x: first.x, y: hangY }, body, 0)) {
         return [
           { k: "walk", x: take },
+          { k: "pose", pose: "crouch", dur: CROUCH_S },
           { k: "jump", to: { x: first.x, y: hangY }, land: null, lift: 0, grip: first },
           { k: "swing", grips: bars },
           { k: "drop" },
@@ -442,10 +475,11 @@ const PLANNERS: Record<Intent, (w: World, a: Actor, r: Rng) => Task[] | null> = 
   tour: tourTasks,
   wave: () => [{ k: "pose", pose: "wave", dur: 1.8 }],
   trick: trickTasks,
+  slide: slideTasks,
 };
 
 /** Things that go somewhere, as opposed to gestures made on the spot. */
-const JOURNEYS: Intent[] = ["climb", "letters", "swing", "tour", "explore", "stroll"];
+const JOURNEYS: Intent[] = ["climb", "letters", "swing", "tour", "explore", "stroll", "slide"];
 
 function decide(world: World, a: Actor, rng: Rng): Task[] {
   if (a.budget <= 0) return exitTasks(world, a, rng);
@@ -495,7 +529,7 @@ function decide(world: World, a: Actor, rng: Rng): Task[] {
 // ----------------------------------------------------------------- spawning
 
 const ROUTINE_INTENT: Partial<Record<Routine, Intent>> = {
-  walk: "explore", box: "climb", letters: "letters", swing: "swing", tour: "tour", trick: "trick",
+  walk: "explore", box: "climb", letters: "letters", swing: "swing", tour: "tour", trick: "trick", slide: "slide",
 };
 
 /**
@@ -670,9 +704,10 @@ function begin(world: World, a: Actor, rng: Rng) {
       const [r0, r1] = s ? standRange(s, a.body.hw) : [a.x, a.x];
       const target = clamp(task.x, r0, r1);
       a.mode = "walk";
-      a.walk = { target, dash: a.sp.burst };
-      a.pose = "walk";
+      a.walk = { target, dash: a.sp.burst, slide: task.slide, from: a.x };
+      a.pose = task.slide ? "slide" : "walk";
       face(a, target - a.x);
+      if (task.slide) puff(a, "dust", a.x, a.y + 0.04);
       return;
     }
     case "jump": {
@@ -772,6 +807,12 @@ function begin(world: World, a: Actor, rng: Rng) {
   }
 }
 
+/** Feet back on the ground: a squash before whatever comes next, and dust. */
+function touchDown(a: Actor) {
+  a.queue.unshift({ k: "pose", pose: "land", dur: LAND_S });
+  if (!a.sp.flies) puff(a, "dust", a.x, a.y + 0.04);
+}
+
 function hangFeet(a: Actor, gx: number, gy: number) {
   return { x: gx, y: gy - a.body.h - ARM };
 }
@@ -852,10 +893,15 @@ export function step(world: World, a: Actor, dt: number, rng: Rng): boolean {
       const w = a.walk!;
       const dir = Math.sign(w.target - a.x);
       const left = Math.abs(w.target - a.x);
-      const stepLen = Math.min(left, a.sp.speed * dt);
+      // a belly slide shoots off fast and coasts to a stop over the last stretch
+      // a walk eases in from a stop and out into one; a slide shoots off and coasts
+      const pace = w.slide
+        ? a.sp.speed * SLIDE_BOOST * clamp(left / SLIDE_COAST, 0.25, 1)
+        : a.sp.speed * clamp(Math.min(Math.abs(a.x - w.from) + 0.12, left + 0.05) / EASE, 0.4, 1);
+      const stepLen = Math.min(left, pace * dt);
       a.x += dir * stepLen;
       a.moving = stepLen > 0;
-      if (a.sp.burst) {
+      if (a.sp.burst && !w.slide) {
         w.dash -= stepLen;
         if (w.dash <= 0 && left - stepLen > 0.05) {
           a.mode = "rest";
@@ -878,6 +924,7 @@ export function step(world: World, a: Actor, dt: number, rng: Rng): boolean {
       if (u >= 1) {
         a.mode = "walk";
         a.walk!.dash = a.sp.burst * between(rng, 0.7, 1.3);
+        a.walk!.from = a.x;
         a.pose = "walk";
       }
       return true;
@@ -941,6 +988,7 @@ export function step(world: World, a: Actor, dt: number, rng: Rng): boolean {
         a.surface = a.landOn ?? surfaceBelow(world, a.x, a.y + 0.01)?.id ?? null;
         a.pose = "stand";
         remember(world, a);
+        touchDown(a);
         begin(world, a, rng);
       }
       return true;
@@ -1003,6 +1051,7 @@ export function step(world: World, a: Actor, dt: number, rng: Rng): boolean {
           a.surface = ground.id;
           a.pose = "stand";
           remember(world, a);
+          touchDown(a);
           begin(world, a, rng);
         } else {
           // Landed somewhere with no room to stand: off it goes, by magic.

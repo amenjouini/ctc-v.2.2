@@ -9,7 +9,7 @@ export const CRITTER_FOR: Record<Theme, CritterKind> = {
   dusk: "owl",
   beach: "crab",
   snow: "penguin",
-  autumn: "squirrel",
+  autumn: "fox",
   halloween: "ghost",
 };
 
@@ -20,9 +20,9 @@ export interface Spawn {
   routine?: Routine;
 }
 
-const ROUTINES: Routine[] = ["walk", "box", "letters", "swing", "tour", "dangle", "trick", "peek"];
+const ROUTINES: Routine[] = ["walk", "box", "letters", "swing", "tour", "dangle", "trick", "peek", "slide"];
 
-/** Development only: ?critter=walk|box|letters|swing|tour|dangle|trick|peek summons one
+/** Development only: ?critter=walk|box|letters|swing|tour|dangle|trick|peek|slide summons one
  *  quickly and makes it do that, so the motion can be checked on demand. */
 function forced(): Routine | undefined {
   if (!import.meta.env.DEV) return undefined;

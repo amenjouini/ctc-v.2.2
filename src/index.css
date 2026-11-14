@@ -688,56 +688,38 @@
 }
 .actor-flip { width: 100%; height: 100%; }
 .actor svg { width: 100%; height: 100%; display: block; overflow: visible; }
-/* critters are smooth vector art, not pixel art: soft edges */
-.actor svg, .cheer-critter svg { shape-rendering: geometricPrecision; }
-.actor .leg-l, .actor .leg-r, .actor .arm { transform-box: fill-box; }
-.actor .leg-l, .actor .leg-r { transform-origin: 50% 0; }
-.actor .arm { transform-origin: 50% 90%; }
+/* Critters are pixel art: square pixels, never smoothed (Scale2x has already
+   rounded the edges, at twice the detail). How they move is drawn frames,
+   played by Critters.tsx; nothing here bends or nudges the art. */
+.actor svg.pixel-art, .cheer-critter svg.pixel-art { shape-rendering: crispEdges; image-rendering: pixelated; }
 .thread {
   position: absolute; left: 0; top: 0; width: 2px; display: none;
   background: var(--paper-3); opacity: 0.85; transform-origin: 1px 0;
 }
 
-/* walking — each species its own way. The body's bob goes on the sprite
-   itself, not on .actor-flip: that element carries the left/right flip as
-   an inline transform, and an animated transform would override it. */
-.actor[data-moving="true"] .gait-owl > svg { animation: hop 440ms var(--step-walk) infinite; }
-.actor[data-moving="true"] .gait-owl .leg-l { animation: step-a 440ms var(--step-walk) infinite; }
-.actor[data-moving="true"] .gait-owl .leg-r { animation: step-b 440ms var(--step-walk) infinite; }
-.actor[data-moving="true"] .gait-penguin > svg { transform-origin: 50% 100%; animation: waddle 560ms var(--step-walk) infinite; }
-.actor[data-moving="true"] .gait-penguin .leg-l { animation: shuffle-a 560ms var(--step-walk) infinite; }
-.actor[data-moving="true"] .gait-penguin .leg-r { animation: shuffle-b 560ms var(--step-walk) infinite; }
-.actor[data-moving="true"] .gait-squirrel > svg { animation: bound 320ms steps(4, end) infinite; }
-.actor[data-moving="true"] .gait-squirrel .leg-l,
-.actor[data-moving="true"] .gait-squirrel .leg-r { animation: tuck 320ms steps(2, end) infinite; }
-.actor[data-moving="true"] .gait-crab > svg { animation: scuttle-bob 180ms steps(2, end) infinite; }
-.actor[data-moving="true"] .gait-crab .leg-l { animation: step-a 180ms steps(2, end) infinite; }
-.actor[data-moving="true"] .gait-crab .leg-r { animation: step-b 180ms steps(2, end) infinite; }
+/* Blinking: the closed eyes show for a moment every few seconds, each
+   critter on its own clock (--blink-delay, set per sprite). */
+.pixel-art .lids { opacity: 0; animation: blink 4200ms steps(1, end) var(--blink-delay, 0s) infinite; }
+@keyframes blink { 0%, 95% { opacity: 0; } 96%, 99% { opacity: 1; } }
 
-/* The ghost never walks: it bobs in the air all the time, its hem
-   flutters, and when it moves it leans into the flight. */
-.actor .gait-ghost > svg { opacity: .94; transform-origin: 50% 100%; animation: ghost-float 1400ms steps(3, end) infinite alternate; }
-.actor .gait-ghost .leg-l { animation: hem-a 520ms steps(1, end) infinite; }
-.actor .gait-ghost .leg-r { animation: hem-b 520ms steps(1, end) infinite; }
-.actor[data-moving="true"] .gait-ghost > svg { animation: ghost-fly 700ms steps(2, end) infinite alternate; }
+/* Lying on its belly, the penguin's scarf and eyelids (drawn for it standing) stay hidden. */
+.actor[data-pose="slide"] .pixel-art .outfit, .actor[data-pose="slide"] .pixel-art .lids { display: none; }
+
+/* The ghost floats: it bobs in the air all the time, one screen pixel a
+   step, a little faster when it moves. */
+.actor .gait-ghost > svg { opacity: .95; transform-origin: 50% 100%; animation: ghost-float 1400ms steps(4, end) infinite alternate; }
+.actor[data-moving="true"] .gait-ghost > svg { animation: ghost-fly 700ms steps(3, end) infinite alternate; }
 @keyframes ghost-float { from { transform: translateY(0); } to { transform: translateY(-4px); } }
-@keyframes ghost-fly { from { transform: rotate(8deg) translateY(0); } to { transform: rotate(8deg) translateY(-3px); } }
-@keyframes hem-a { 0%, 49% { transform: translateX(0); } 50%, 100% { transform: translateX(-1px); } }
-@keyframes hem-b { 0%, 49% { transform: translateX(-1px); } 50%, 100% { transform: translateX(0); } }
+@keyframes ghost-fly { from { transform: translateY(0); } to { transform: translateY(-3px); } }
 
-/* Peek-a-boo: it hides its eyes behind its hand and fades, then pops out
-   big — the "BOO!" (an fx) lands on the pop — and settles back. */
+/* Peek-a-boo: the ghost fades almost away, then pops out big — the "BOO!"
+   (an fx) lands on the pop — and settles back. */
 .actor[data-pose="boo"] .gait-ghost > svg { animation: peekaboo 2200ms linear 1 forwards; }
-.actor[data-pose="boo"] .gait-ghost .arm { animation: boo-arm 2200ms steps(1, end) 1 forwards; }
 @keyframes peekaboo {
-  0% { opacity: .94; transform: scale(1); }
+  0% { opacity: .95; transform: scale(1); }
   12%, 52% { opacity: .3; transform: scale(.9); }
   58% { opacity: 1; transform: scale(1.35) translateY(-3px); }
-  70%, 100% { opacity: .94; transform: scale(1); }
-}
-@keyframes boo-arm {
-  0%, 54% { transform: translate(-3px, -1px); }
-  55%, 100% { transform: translateY(-60%) rotate(-25deg); }
+  70%, 100% { opacity: .95; transform: scale(1); }
 }
 .fx-boo b {
   position: absolute; left: 0; top: 0; white-space: nowrap;
@@ -752,32 +734,12 @@
   100% { opacity: 0; transform: translate(-50%, -130%) scale(1); }
 }
 
-/* On the tour the body stays pressed to the frame — no bounding or
-   waddling off a wall — while the legs keep stepping. */
-.actor[data-mode="tour"] .actor-flip > svg { animation: none; }
-
-/* gestures */
-.actor[data-pose="wave"] .arm { animation: wave 420ms var(--step-fast) infinite alternate; }
-/* Every sprite's arm already points up from the shoulder: raising it is a
-   lift, not a spin (a spin flips it down past the feet). */
-.actor[data-pose="trick"] .arm { transform: translateY(-60%) rotate(-25deg); }
-.actor[data-pose="hang"] .arm { transform: translateY(-110%) rotate(-12deg); }
-.actor[data-pose="hang"] .leg-l, .actor[data-pose="hang"] .leg-r { animation: step-a 700ms var(--step-walk) infinite; }
-.actor[data-pose="air"] .leg-l { transform: rotate(-30deg); }
-.actor[data-pose="air"] .leg-r { transform: rotate(30deg); }
-.actor[data-pose="look"] .actor-flip > svg { animation: look 900ms steps(2, end) 1; }
-
-@keyframes hop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
-@keyframes step-a { 0%, 49% { transform: rotate(-17deg); } 50%, 100% { transform: rotate(17deg) translateY(-1px); } }
-@keyframes step-b { 0%, 49% { transform: rotate(17deg) translateY(-1px); } 50%, 100% { transform: rotate(-17deg); } }
-@keyframes waddle { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
-@keyframes shuffle-a { 0%, 49% { transform: translateY(-1px); } 50%, 100% { transform: translateY(0); } }
-@keyframes shuffle-b { 0%, 49% { transform: translateY(0); } 50%, 100% { transform: translateY(-1px); } }
-@keyframes bound { 0% { transform: translateY(0); } 35% { transform: translateY(-6px); } 70% { transform: translateY(-2px); } 100% { transform: translateY(0); } }
-@keyframes tuck { 0%, 49% { transform: rotate(-30deg); } 50%, 100% { transform: rotate(0deg); } }
-@keyframes scuttle-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
-@keyframes wave { from { transform: rotate(0deg); } to { transform: rotate(-46deg); } }
-@keyframes look { 50% { transform: translateY(-2px); } }
+/* a little dust kicked up on landing */
+.fx-dust i { width: 3px; height: 3px; left: -1px; top: -1px; background: color-mix(in srgb, var(--paper-3) 70%, transparent); animation: dust 420ms steps(4, end) forwards; }
+.fx-dust i:nth-child(n+5) { display: none; }
+.fx-dust i:nth-child(1) { --dx: -12px; --dy: -3px; } .fx-dust i:nth-child(2) { --dx: 12px; --dy: -3px; }
+.fx-dust i:nth-child(3) { --dx: -7px; --dy: -6px; } .fx-dust i:nth-child(4) { --dx: 7px; --dy: -6px; }
+@keyframes dust { from { transform: translate(0, 0); opacity: 1; } to { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
 
 /* What the rival said, in a pixel speech balloon above the critter: a
    small dot, a bigger dot, then the balloon — white, inked outline, corners
@@ -831,8 +793,6 @@
   width: var(--crit); height: var(--crit); animation: joy 520ms steps(4, end) infinite;
 }
 .cheer-critter svg { width: 100%; height: 100%; display: block; overflow: visible; }
-.cheer-critter .arm { transform-box: fill-box; transform-origin: 50% 90%; animation: wave 260ms var(--step-fast) infinite alternate; }
-.cheer-critter .leg-l, .cheer-critter .leg-r { transform-box: fill-box; transform-origin: 50% 0; }
 @keyframes joy { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-16px); } 60% { transform: translateY(-14px); } }
 .firework { position: absolute; width: 0; height: 0; }
 .firework i {
