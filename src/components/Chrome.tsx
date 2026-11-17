@@ -4,6 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { setSetting, useSettings } from "@/hooks/useSettings";
 import { LANGS, useT, type Key, type Lang } from "@/i18n";
 import { THEMES, type Theme } from "@/hooks/useTheme";
+import { report } from "@/telemetry";
+import { useInstall } from "@/pwa";
 import { BarLegend, Modal } from "./Rail";
 
 /* Each scene as a 12x12 postcard: big flat shapes, no detail. */
@@ -132,6 +134,10 @@ function Menu({
           onClick={() => setSetting("critters", !settings.critters)}>
           <span>{t("characters")}</span><i />
         </button>
+        <button type="button" className="toggle mt-2.5" aria-pressed={settings.sound}
+          onClick={() => setSetting("sound", !settings.sound)}>
+          <span>{t("sound")}</span><i />
+        </button>
         <div className="lang-picker mt-2.5" role="group" aria-label={t("language")}>
           {(Object.keys(LANGS) as Lang[]).map((l) => (
             <button key={l} type="button" className={settings.lang === l ? "btn" : "btn-wood"} aria-pressed={settings.lang === l}
@@ -141,8 +147,62 @@ function Menu({
           ))}
         </div>
       </section>
+      <InstallSection />
+      <Feedback />
+      <nav className="menu-links" aria-label={t("about")}>
+        <Link to="/privacy" onClick={onClose}>{t("privacy")}</Link>
+        <Link to="/terms" onClick={onClose}>{t("terms")}</Link>
+      </nav>
       <button type="button" className="btn-wood mt-5 w-full" onClick={onClose}>{t("close")}</button>
     </Modal>
+  );
+}
+
+/** Offered only where the browser can install the game and it is not yet. */
+function InstallSection() {
+  const t = useT();
+  const { way, install } = useInstall();
+  if (!way) return null;
+  return (
+    <section className="menu-section">
+      {way === "prompt" ? (
+        <button type="button" className="btn-wood w-full" onClick={() => void install()}>{t("install")}</button>
+      ) : (
+        <p className="copy muted" style={{ fontSize: 15 }}>{t("install_ios")}</p>
+      )}
+    </section>
+  );
+}
+
+/** A short note to the makers, sent to the game's own server. */
+function Feedback() {
+  const t = useT();
+  const [text, setText] = useState("");
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+  const send = async () => {
+    const message = text.trim();
+    if (!message) return;
+    setState("sending");
+    const ok = await report("feedback", { message });
+    setState(ok ? "sent" : "failed");
+    if (ok) setText("");
+  };
+  return (
+    <section className="menu-section">
+      <p className="eyebrow mb-3"><label htmlFor="feedback">{t("feedback")}</label></p>
+      {state === "sent" ? (
+        <p className="copy" role="status">{t("feedback_thanks")}</p>
+      ) : (
+        <>
+          <textarea id="feedback" className="field field-text feedback-box w-full" rows={3} maxLength={1000}
+            placeholder={t("feedback_hint")} value={text} onChange={(e) => setText(e.target.value)} />
+          {state === "failed" && <p className="field-error mt-2" role="alert">{t("feedback_failed")}</p>}
+          <button type="button" className="btn-wood mt-2.5 w-full" disabled={!text.trim() || state === "sending"} onClick={send}>
+            {state === "sending" ? t("sending") : t("send")}
+          </button>
+        </>
+      )}
+    </section>
   );
 }
 

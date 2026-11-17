@@ -1125,3 +1125,38 @@
   }
   .weather, .critter-stage { display: none !important; }
 }
+
+/* ============================================================
+   DAILY PUZZLE, LEGAL PAGES, MENU EXTRAS
+   ============================================================ */
+/* the front door's main button: the puzzle's number, and a line under it */
+.daily-hero { display: grid; gap: 6px; justify-items: center; }
+.daily-hero small { font-family: var(--font-ui); font-size: 13px; letter-spacing: 0.06em; opacity: 0.85; line-height: 1.2; }
+
+/* under the daily keypad, where the free game has its reveal button */
+.daily-note { display: flex; align-items: center; justify-content: center; margin: 0; text-align: center;
+  font-family: var(--font-ui); font-weight: 700; letter-spacing: 0.06em; color: var(--paper-3);
+  background: var(--slate-1); border: var(--px) solid var(--ink); }
+.daily-clock { color: var(--brass-3); font-variant-numeric: tabular-nums; letter-spacing: 0.08em; }
+
+.daily-stats { text-align: start; }
+.daily-figures { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 0; }
+.daily-figures div { display: grid; gap: 2px; justify-items: center; padding: 8px 4px;
+  background: var(--slate-1); border: var(--px) solid var(--ink); }
+.daily-figures dt { order: 2; font-family: var(--font-ui); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--slate-4); text-align: center; line-height: 1.15; }
+.daily-figures dd { order: 1; margin: 0; font-family: var(--font-title); font-size: 22px; color: var(--paper-5); font-variant-numeric: tabular-nums; }
+.daily-spread { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.daily-spread li { display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: center; gap: 6px; }
+.daily-spread span { font-family: var(--font-ui); font-size: 13px; color: var(--paper-3); text-align: end; }
+.daily-spread i { display: block; font-style: normal; min-width: 22px; padding: 1px 6px; text-align: end;
+  font-family: var(--font-ui); font-size: 13px; color: var(--paper-5); background: var(--slate-3); border: 2px solid var(--ink); }
+.daily-spread i.is-today { background: var(--brass-2); color: var(--brass-0); }
+
+.menu-links { display: flex; gap: 18px; justify-content: center; margin-top: 18px; }
+.menu-links a { font-family: var(--font-ui); font-size: 14px; letter-spacing: 0.06em; color: var(--paper-3); text-decoration: underline; text-underline-offset: 3px; }
+.menu-links a:hover, .menu-links a:focus-visible { color: var(--brass-4); }
+.feedback-box { resize: vertical; min-height: 84px; line-height: 1.35; }
+
+.legal { margin-bottom: 8px; }
+.legal .copy { color: var(--paper-4); }

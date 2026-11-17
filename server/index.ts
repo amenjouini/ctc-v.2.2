@@ -45,6 +45,7 @@ import {
 } from "../shared/protocol";
 import * as R from "../shared/room";
 import { OpenCount, WindowLimit, clientIp } from "./limits";
+import { originOf, renderPage } from "./page";
 
 const PORT = Number(process.env.PORT ?? 8787);
 const HOST = process.env.HOST ?? "0.0.0.0";
@@ -278,7 +279,12 @@ function publicHost(req: http.IncomingMessage): string | undefined {
 }
 
 const STATIC_DIR = path.resolve(process.env.STATIC_DIR ?? "dist");
-const HAS_STATIC = fs.existsSync(path.join(STATIC_DIR, "index.html"));
+const INDEX = path.join(STATIC_DIR, "index.html");
+const HAS_STATIC = fs.existsSync(INDEX);
+let indexCache: string | null = null;
+function indexHtml(): string {
+  return (indexCache ??= fs.readFileSync(INDEX, "utf8"));
+}
 const TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -323,6 +329,13 @@ function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
     headers["X-Frame-Options"] = "DENY";
   }
   if (https) headers["Strict-Transport-Security"] = "max-age=15552000";
+  if (target === INDEX) {
+    // the page, with its link-preview tags filled in for this address
+    const origin = originOf(publicHost(req), https) ?? "";
+    const body = renderPage(indexHtml(), origin, url.pathname);
+    res.writeHead(200, headers);
+    return void res.end(req.method === "HEAD" ? undefined : body);
+  }
   res.writeHead(200, headers);
   if (req.method === "HEAD") return void res.end();
   fs.createReadStream(target).pipe(res);

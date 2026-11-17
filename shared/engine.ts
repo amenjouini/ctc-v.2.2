@@ -20,11 +20,13 @@ export interface Verdict {
  * Four distinct digits, never leading with zero.
  * Fisher-Yates over the whole digit set, then a targeted swap when zero
  * lands first — a re-roll would bias the distribution, a swap does not.
+ * `rng` returns [0, 1); a seeded one gives the same code every time (the
+ * daily puzzle).
  */
-export function generateCode(): Code {
+export function generateCode(rng: () => number = Math.random): Code {
   const pool = [...DIGITS];
   for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
   if (pool[0] === "0") {

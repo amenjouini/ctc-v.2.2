@@ -7,6 +7,8 @@ import { useSyncExternalStore } from "react";
 export interface Settings {
   /** the wandering characters */
   critters: boolean;
+  /** the game's sound effects */
+  sound: boolean;
   lang: "en" | "fr";
 }
 
@@ -21,7 +23,7 @@ function deviceLang(): Settings["lang"] {
 }
 
 function read(): Settings {
-  const defaults: Settings = { critters: true, lang: deviceLang() };
+  const defaults: Settings = { critters: true, sound: true, lang: deviceLang() };
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) ?? "{}") as Partial<Settings>;
     const merged = { ...defaults, ...saved };
@@ -53,6 +55,11 @@ export function setSetting<K extends keyof Settings>(key: K, value: Settings[K])
   }
   apply();
   listeners.forEach((l) => l());
+}
+
+/** The settings right now, for code outside React (sounds). */
+export function currentSettings(): Settings {
+  return current;
 }
 
 export function useSettings(): Settings {

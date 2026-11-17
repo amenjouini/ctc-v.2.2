@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { playVerdict } from "@/sound";
 import type { Code } from "@shared/engine";
 import { Masthead } from "@/components/Chrome";
 import { Cheer, Critters } from "@/components/Critters";
@@ -10,6 +11,78 @@ import { useDraft, useGameKeys } from "@/hooks/useDraft";
 import { useSoloGame, REVEALS_PER_DAY } from "@/hooks/useSoloGame";
 import type { Theme } from "@/hooks/useTheme";
 import { triesText, useLang, useT, verdictText } from "@/i18n";
+import type { SoloTurn } from "@/hooks/useSoloGame";
+
+type Draft = ReturnType<typeof useDraft>;
+
+/**
+ * The board one player solves alone: the free game and the daily puzzle
+ * both use it. `extra` is the button under the keypad, `headNote` the text
+ * on the right of the board's heading.
+ */
+export function SoloBoard({
+  theme, game, draft, fire, readout, alert, headNote, extra,
+}: {
+  theme: Theme;
+  game: { turns: SoloTurn[]; solved: boolean; ruledOut: Record<string, boolean>; toggleRuledOut: (d: string) => void };
+  draft: Draft;
+  fire: () => void;
+  readout: string;
+  /** the readout says something the bars do not, so it is shown */
+  alert: boolean;
+  headNote: ReactNode;
+  extra: ReactNode;
+}) {
+  const t = useT();
+  // A sound for each new result, not for a board restored on load.
+  const count = useRef(game.turns.length);
+  useEffect(() => {
+    const n = game.turns.length;
+    if (n > count.current) playVerdict(game.turns[n - 1].verdict, game.solved);
+    count.current = n;
+  }, [game.turns, game.solved]);
+  return (
+    <main className="shell-stage stage-solo">
+      <section className="frame board" aria-label={t("your_board")}>
+        <Critters theme={theme} />
+
+        <div className="board-log">
+          <div className="board-head">
+            <p className="eyebrow">{t("your_guesses")}</p>
+            <p className="eyebrow">{headNote}</p>
+          </div>
+
+          <Ledger turns={game.turns} onLoad={game.solved ? undefined : draft.load} label={t("your_guesses")}
+            empty={<p className="eyebrow">{t("four_digits")}</p>} />
+
+          {/* Shown only when it says something the bars do not. */}
+          <p className={alert ? "parchment readout is-alert" : "readout sr-only"} aria-live="polite">
+            {readout}
+          </p>
+        </div>
+
+        <div className="board-controls">
+          <div className="reels-well">
+            <Reels slots={draft.slots} active={draft.slot} locked={game.solved} onFocusSlot={draft.setSlot} />
+          </div>
+
+          <Keypad
+            isBlocked={draft.isBlocked} ruledOut={game.ruledOut} disabled={game.solved}
+            canErase={draft.used.length > 0} canSubmit={draft.complete && !game.solved} submitLabel={t("crack_it")}
+            onPlace={draft.place} onErase={draft.erase} onSubmit={fire}
+            onRuleOut={game.toggleRuledOut}
+          />
+
+          {extra}
+        </div>
+      </section>
+
+      <aside className="rail max-lg:hidden">
+        <RailCards ruledOut={game.ruledOut} onToggle={game.toggleRuledOut} />
+      </aside>
+    </main>
+  );
+}
 
 export function Solo({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) => void }) {
   const game = useSoloGame();
@@ -82,65 +155,26 @@ export function Solo({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
         </>
       } />
 
-      <main className="shell-stage stage-solo">
-        <section className="frame board" aria-label={t("your_board")}>
-          <Critters theme={theme} />
-
-          <div className="board-log">
-            <div className="board-head">
-              <p className="eyebrow">{t("your_guesses")}</p>
-              <p className="eyebrow">
-                <span className="sm:hidden">{t("best")} {game.best ?? "--"} &middot; </span>
-                {tries}
-              </p>
-            </div>
-
-            <Ledger turns={game.turns} onLoad={game.solved ? undefined : draft.load} label={t("your_guesses")}
-              empty={<p className="eyebrow">{t("four_digits")}</p>} />
-
-            {/* Shown only when it says something the bars do not. */}
-            <p className={showCode ? "parchment readout is-alert" : "readout sr-only"} aria-live="polite">
-              {readout}
-            </p>
-          </div>
-
-          <div className="board-controls">
-            <div className="reels-well">
-              <Reels slots={draft.slots} active={draft.slot} locked={game.solved} onFocusSlot={draft.setSlot} />
-            </div>
-
-            <Keypad
-              isBlocked={draft.isBlocked} ruledOut={game.ruledOut} disabled={game.solved}
-              canErase={draft.used.length > 0} canSubmit={draft.complete && !game.solved} submitLabel={t("crack_it")}
-              onPlace={draft.place} onErase={draft.clear} onSubmit={fire}
-              onRuleOut={game.toggleRuledOut}
-            />
-
-            {game.solved ? (
-              <button type="button" className="btn btn-big board-extra w-full" onClick={fresh}>{t("next_code")}</button>
-            ) : (
-              <button type="button" className="btn-wood board-extra flex w-full items-center justify-center gap-3.5 max-sm:hidden"
-                disabled={game.revealed || game.revealsLeft <= 0}
-                onClick={game.reveal}>
-                <span>
-                  {game.revealed ? t("code_shown")
-                    : game.revealsLeft <= 0 ? t("no_reveals")
-                    : t("show_code")}
-                </span>
-                <span className="flex gap-1" aria-label={t("reveals_left", { n: game.revealsLeft, max: REVEALS_PER_DAY })}>
-                  {Array.from({ length: REVEALS_PER_DAY }).map((_, i) => (
-                    <span key={i} className={`pip ${i < spent ? "spent" : ""}`} />
-                  ))}
-                </span>
-              </button>
-            )}
-          </div>
-        </section>
-
-        <aside className="rail max-lg:hidden">
-          <RailCards ruledOut={game.ruledOut} onToggle={game.toggleRuledOut} />
-        </aside>
-      </main>
+      <SoloBoard theme={theme} game={game} draft={draft} fire={fire} readout={readout} alert={showCode}
+        headNote={<><span className="sm:hidden">{t("best")} {game.best ?? "--"} &middot; </span>{tries}</>}
+        extra={game.solved ? (
+          <button type="button" className="btn btn-big board-extra w-full" onClick={fresh}>{t("next_code")}</button>
+        ) : (
+          <button type="button" className="btn-wood board-extra flex w-full items-center justify-center gap-3.5 max-sm:hidden"
+            disabled={game.revealed || game.revealsLeft <= 0}
+            onClick={game.reveal}>
+            <span>
+              {game.revealed ? t("code_shown")
+                : game.revealsLeft <= 0 ? t("no_reveals")
+                : t("show_code")}
+            </span>
+            <span className="flex gap-1" aria-label={t("reveals_left", { n: game.revealsLeft, max: REVEALS_PER_DAY })}>
+              {Array.from({ length: REVEALS_PER_DAY }).map((_, i) => (
+                <span key={i} className={`pip ${i < spent ? "spent" : ""}`} />
+              ))}
+            </span>
+          </button>
+        )} />
 
       <Modal open={askNew} onClose={() => setAskNew(false)} labelledBy="new-title">
         <h2 className="title mb-3 text-center" style={{ fontSize: 24 }} id="new-title">{t("new_q")}</h2>

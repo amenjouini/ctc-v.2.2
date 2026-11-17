@@ -1,7 +1,9 @@
 # Crack the Code
 
 Bulls-and-cows deduction. Four different digits, never starting with zero.
-Play solo, or 1v1 against a friend over a shared table code.
+Play solo, the daily puzzle (the same code for everyone each day, with a
+shareable result), or 1v1 against a friend over a shared table code.
+Installable as an app, playable offline in solo.
 
 ## Run it
 
@@ -35,22 +37,32 @@ To try it from a phone on your Wi-Fi: `npm run dev:web -- --host` and
 
 ```
 shared/     engine.ts    pure rules: scoring, validation, codes
+            daily.ts     the daily puzzle: code per day, numbers, streaks, share squares
             protocol.ts  every wire message, plus the parser that validates them
             room.ts      the room state machine: seats, turns, rematches
-server/     index.ts     transport only: HTTP, WebSocket, heartbeats, limits
+server/     index.ts     transport only: HTTP, WebSocket, heartbeats, /api/report
+            limits.ts    per-address limits against table-code guessing
+            page.ts      fills in the link-preview tags for each address
+public/                  sw.js (offline), manifest, icons, og.png (link preview)
 test/                    node:test suites (no extra dependencies)
+.github/workflows/       CI: typecheck, tests, build on every push
 src/
+  telemetry.ts           crash reports to our server; opt-in cookie-free analytics
+  sound.ts               sound effects, synthesised (no audio files)
+  pwa.ts                 service worker registration and the install button
+  share.ts               share sheet or clipboard
   world/    world.ts     the critters' world: table, solid boxes, letters, surfaces
             actor.ts     a critter: state machine, gravity, routes, reactions
             sprites.ts   each sprite's contact point and body size
             measure.ts   the only DOM reader: tagged elements -> rectangles
   hooks/    useDraft     the four-slot composer + keyboard play
             useSoloGame  offline play, best score, daily reveal budget, saved board
+            useDailyGame the daily puzzle: today's board, history, statistics
             useRoom      the socket: seat tokens, reconnects, errors
             useTheme     palette swap via <html data-theme>
             useCritters  spawn scheduler for the wandering characters
   components/            Reels, Keypad, BarMarks, GuessRow, Scene, Critters, Chrome, Rail
-  pages/                 Home, Solo, Room
+  pages/                 Home, Solo, Daily, Room, Legal (privacy and terms)
 ```
 
 `shared/` has no DOM, no network and no framework. A native iOS/Android client
@@ -185,6 +197,25 @@ anything ambient.
 Split hosting also works: put `dist/` on a static host, run the server
 elsewhere, build the client with `VITE_WS_URL=wss://your-server/ws`, and set
 `ALLOWED_ORIGINS=https://your-static-site` on the server. See `.env.example`.
+
+**Abuse limits.** Table codes are short, so guessing them is slowed down: each
+address may hold `MAX_SOCKETS_PER_IP` sockets, a socket is closed after 6
+wrong codes, and an address with `JOIN_FAILS_PER_IP` wrong codes in 10 minutes
+is paused (a player reclaiming their own seat never is). On Render the
+player's address is read from `X-Forwarded-For` automatically.
+
+**Crash reports and feedback** arrive as `[crack-the-code] error {...}` and
+`[crack-the-code] feedback {...}` lines in the server log (Render: the Logs
+tab). Nothing is stored on disk. `/healthz` answers `{ ok: true }`; with
+`?key=$HEALTH_KEY` it also shows table and socket counts.
+
+**Analytics** are off until `VITE_ANALYTICS_URL` and `VITE_ANALYTICS_DOMAIN`
+are set at build time (Plausible event format, no cookies) and the server's
+`CONNECT_SRC` allows that origin.
+
+**Before a public launch:** a paid Render instance (the free one sleeps after
+15 minutes, so the first visitor waits ~1 minute), your own domain, and
+`VITE_CONTACT_EMAIL` so the privacy and terms pages say how to reach you.
 
 State is in memory: a restart or a second instance loses live tables (players
 see "This table is closed" and can reopen it). Run exactly one instance. To

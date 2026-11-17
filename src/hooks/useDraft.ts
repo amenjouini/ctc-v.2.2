@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CODE_LENGTH, isValidCode, type Code } from "@shared/engine";
+import { play } from "@/sound";
 import { dialogs } from "./dialogs";
 
 /**
@@ -26,6 +27,7 @@ export function useDraft() {
       next[slot] = d;
       setSlots(next);
       setSlot(Math.min(slot + 1, CODE_LENGTH - 1));
+      play("tap");
     },
     [slot, slots],
   );
@@ -35,6 +37,12 @@ export function useDraft() {
     setSlots(Array(CODE_LENGTH).fill(""));
     setSlot(0);
   }, []);
+
+  /** Wipes the row when the player asks to (Erase, Escape): with a sound. */
+  const erase = useCallback(() => {
+    if (slots.some(Boolean)) play("erase");
+    clear();
+  }, [slots, clear]);
 
   /** Single-digit delete, bound to the Backspace key only. Pure, for the
    *  same reason as place(). */
@@ -62,7 +70,7 @@ export function useDraft() {
     [used, slot],
   );
 
-  return { slots, slot, setSlot, place, clear, backspace, load, complete, used, isBlocked };
+  return { slots, slot, setSlot, place, clear, erase, backspace, load, complete, used, isBlocked };
 }
 
 type Draft = ReturnType<typeof useDraft>;
@@ -86,7 +94,7 @@ export function useGameKeys(draft: Draft, submit: () => void, enabled: boolean) 
 
       if (e.key >= "0" && e.key <= "9" && e.key.length === 1) d.place(e.key);
       else if (e.key === "Backspace") d.backspace();
-      else if (e.key === "Delete" || e.key === "Escape") d.clear();
+      else if (e.key === "Delete" || e.key === "Escape") d.erase();
       else if (e.key === "Enter") {
         // A full code always fires, wherever focus happens to be. Otherwise
         // a focused button outside the board (Guide, New code) keeps its

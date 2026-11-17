@@ -7,6 +7,11 @@ import App from "./App";
 import "@fontsource/luckiest-guy/latin-400.css";
 import "@fontsource/luckiest-guy/latin-ext-400.css";
 import "./index.css";
+import { watchErrors } from "./telemetry";
+import { registerWorker } from "./pwa";
+
+watchErrors();
+registerWorker();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

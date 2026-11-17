@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { play, playVerdict } from "@/sound";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { isRoomCode, makeRoomCode, normaliseRoom, type Code, type Verdict } from "@shared/engine";
 import { NAME_MAX, cleanName, type RoomView } from "@shared/protocol";
@@ -125,6 +126,21 @@ export function Room({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
   useEffect(() => {
     if (tab === "theirs") setSeenTheirs(theirCount);
   }, [tab, theirCount]);
+
+  // Sounds for what just happened, never for what was already there when
+  // the table loaded (a refresh mid-match is silent).
+  const myCount = view?.yourHunt.length ?? 0;
+  const theirLine = view?.chat.filter((c) => !c.mine).at(-1)?.id ?? -1;
+  const heard = useRef<{ mine: number; line: number; phase: string } | null>(null);
+  useEffect(() => {
+    if (!view) return;
+    const prev = heard.current;
+    heard.current = { mine: myCount, line: theirLine, phase };
+    if (!prev) return;
+    if (phase === "over" && prev.phase !== "over") play(view.outcome === "win" ? "win" : "lose");
+    else if (myCount > prev.mine) playVerdict(view.yourHunt[myCount - 1].verdict, false);
+    if (theirLine > prev.line) play("message");
+  }, [view, myCount, theirLine, phase]);
 
   const submit = useCallback(() => {
     if (!canFire) return;
@@ -333,7 +349,7 @@ export function Room({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
                   isBlocked={draft.isBlocked} ruledOut={ruledOut} disabled={!canCompose}
                   canErase={draft.used.length > 0} canSubmit={canFire}
                   submitLabel={pending ? t("sending") : settingSecret ? t("lock_in") : myTurn || phase !== "play" ? t("fire") : t("their_turn")}
-                  onPlace={draft.place} onErase={draft.clear} onSubmit={submit}
+                  onPlace={draft.place} onErase={draft.erase} onSubmit={submit}
                   onRuleOut={phase === "play" ? (d) => setRuledOut((p) => ({ ...p, [d]: !p[d] })) : undefined}
                 />
               </div>

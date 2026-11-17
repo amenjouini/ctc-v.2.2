@@ -5,7 +5,8 @@ import { NAME_MAX } from "@shared/protocol";
 import { Masthead } from "@/components/Chrome";
 import { readName, saveName } from "@/hooks/usePlayerName";
 import type { Theme } from "@/hooks/useTheme";
-import { useT } from "@/i18n";
+import { dailyStatus } from "@/hooks/useDailyGame";
+import { triesText, useLang, useT } from "@/i18n";
 
 export function Home({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) => void }) {
   const nav = useNavigate();
@@ -13,6 +14,8 @@ export function Home({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
   const [join, setJoin] = useState("");
   const [joinError, setJoinError] = useState<string | null>(null);
   const [name, setName] = useState(readName);
+  const lang = useLang();
+  const [daily] = useState(dailyStatus);
 
   const remember = (v: string) => {
     setName(v);
@@ -33,7 +36,16 @@ export function Home({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
 
       <div className="shell-scroll">
         <div className="frame home p-4 sm:p-6">
-          <button type="button" className="btn btn-hero w-full" onClick={() => nav("/solo")}>{t("play_solo")}</button>
+          <button type="button" className="btn btn-hero daily-hero w-full" onClick={() => nav("/daily")}>
+            <span>{t("daily_n", { n: daily.number })}</span>
+            <small>
+              {daily.solved
+                ? t("daily_done", { tries: triesText(lang, daily.tries ?? 0) })
+                : t("daily_tagline")}
+              {daily.streak > 0 && <> &middot; {t("streak")} {daily.streak}</>}
+            </small>
+          </button>
+          <button type="button" className="btn-wood btn-big mt-3 w-full" onClick={() => nav("/solo")}>{t("play_solo")}</button>
 
           <div className="inset mt-4 p-4">
             <p className="eyebrow mb-3">{t("play_friend")}</p>
