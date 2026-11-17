@@ -15,7 +15,10 @@ let proc: ChildProcess;
 
 before(async () => {
   proc = spawn(process.execPath, ["--import", "tsx", "server/index.ts"], {
-    env: { ...process.env, PORT: String(PORT), HOST: "127.0.0.1", STATIC_DIR: "does-not-exist", ALLOWED_ORIGINS: "http://allowed.example" },
+    // every test client shares one address; the per-address limits are
+    // tested on their own in limits.test.ts
+    env: { ...process.env, PORT: String(PORT), HOST: "127.0.0.1", STATIC_DIR: "does-not-exist", ALLOWED_ORIGINS: "http://allowed.example",
+      MAX_SOCKETS_PER_IP: "1000", JOIN_FAILS_PER_IP: "1000", HEALTH_KEY: "test-key" },
     stdio: ["ignore", "pipe", "pipe"],
   });
   await new Promise<void>((resolve, reject) => {
@@ -116,10 +119,31 @@ test("actions before joining a table are refused", async () => {
   assert.deepEqual(c.errors, ["not_now", "not_now"]);
 });
 
-test("health endpoint answers", async () => {
+test("health endpoint answers, and shows counts only with the key", async () => {
   const res = await fetch(`http://127.0.0.1:${PORT}/healthz`);
   assert.equal(res.status, 200);
-  assert.equal((await res.json()).ok, true);
+  assert.deepEqual(await res.json(), { ok: true });
+  const keyed = await (await fetch(`http://127.0.0.1:${PORT}/healthz?key=test-key`)).json();
+  assert.equal(typeof keyed.rooms, "number");
+});
+
+test("reports are accepted, checked and size-limited", async () => {
+  const post = (body: string, headers: Record<string, string> = {}) =>
+    fetch(`http://127.0.0.1:${PORT}/api/report`, { method: "POST", body, headers });
+  assert.equal((await post(JSON.stringify({ kind: "feedback", message: "Love the crab" }))).status, 204);
+  assert.equal((await post(JSON.stringify({ kind: "spam" }))).status, 400);
+  assert.equal((await post("{")).status, 400);
+  assert.equal((await post(JSON.stringify({ kind: "feedback", message: "x".repeat(9000) }))).status, 413);
+  assert.equal((await post("{}", { Origin: "http://evil.example" })).status, 403);
+  assert.equal((await fetch(`http://127.0.0.1:${PORT}/api/report`)).status, 405);
+});
+
+test("a socket that keeps trying wrong table codes is closed", async () => {
+  const c = new Client();
+  await c.opened;
+  for (let i = 0; i < 6; i++) c.send({ t: "join", v: PROTOCOL_VERSION, room: code(), name: "Prober" });
+  await c.until(() => c.closed);
+  assert.ok(c.errors.every((e) => e === "no_room"));
 });
 
 test("hostile and malformed input never takes the server down", async () => {

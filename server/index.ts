@@ -19,6 +19,15 @@
  *   STATIC_DIR         built client to serve (default ./dist when it exists)
  *   SEAT_GRACE_MS      how long a dropped player's seat is held (default 3 min)
  *   MAX_ROOMS          refuse new tables beyond this (default 5000)
+ *   TRUST_PROXY        1 = read the player's address from X-Forwarded-For
+ *                      (default on when running on Render)
+ *   MAX_SOCKETS_PER_IP open sockets one address may hold (default 12)
+ *   JOIN_FAILS_PER_IP  wrong table codes one address may try per 10 minutes
+ *                      before joining is refused for a while (default 20)
+ *   HEALTH_KEY         /healthz?key=... also shows table and socket counts
+ *   CONNECT_SRC        extra socket origins for the page's security policy,
+ *                      when the client talks to a server elsewhere
+ *                      (e.g. wss://rooms.example.com)
  */
 
 import http from "node:http";
@@ -35,6 +44,7 @@ import {
   type ServerMessage,
 } from "../shared/protocol";
 import * as R from "../shared/room";
+import { OpenCount, WindowLimit, clientIp } from "./limits";
 
 const PORT = Number(process.env.PORT ?? 8787);
 const HOST = process.env.HOST ?? "0.0.0.0";
@@ -52,8 +62,26 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? "")
 const RATE_BURST = 20;
 const RATE_PER_SEC = 5;
 
+/**
+ * Table codes are short enough to guess, so guessing is made slow: each
+ * address holds a few sockets at most, each socket is closed after a handful
+ * of wrong codes, and an address that keeps missing is refused for a while.
+ */
+const TRUST_PROXY = (process.env.TRUST_PROXY ?? (process.env.RENDER ? "1" : "0")) === "1";
+const ipSockets = new OpenCount(Number(process.env.MAX_SOCKETS_PER_IP ?? 12));
+const joinFails = new WindowLimit(Number(process.env.JOIN_FAILS_PER_IP ?? 20), 10 * 60_000);
+const FAILS_PER_SOCKET = 6;
+/** error and feedback reports, per address */
+const reports = new WindowLimit(20, 10 * 60_000);
+const HEALTH_KEY = process.env.HEALTH_KEY ?? "";
+/** what a wrong guess at a table code looks like */
+const PROBE_ERRORS: readonly ErrorCode[] = ["no_room", "room_exists", "room_full"];
+
 interface Conn {
   socket: WebSocket;
+  ip: string;
+  /** wrong table codes tried on this socket */
+  fails: number;
   room: string | null;
   seat: Seat | null;
   alive: boolean;
@@ -73,6 +101,14 @@ function send(conn: Conn | undefined, msg: ServerMessage) {
 
 function sendError(conn: Conn, code: ErrorCode, reason: string) {
   send(conn, { t: "error", code, reason });
+}
+
+/** A refused join. Wrong codes count against the socket and the address. */
+function refuseJoin(conn: Conn, code: ErrorCode, reason: string) {
+  sendError(conn, code, reason);
+  if (!PROBE_ERRORS.includes(code)) return;
+  joinFails.hit(conn.ip, Date.now());
+  if (++conn.fails >= FAILS_PER_SOCKET) conn.socket.close(1008, "too many wrong codes");
 }
 
 function broadcast(room: R.RoomState) {
@@ -117,19 +153,24 @@ function onJoin(conn: Conn, msg: Extract<ReturnType<typeof parseClientMessage>, 
 
   let room = rooms.get(code);
   const tokenMatches = Boolean(room && msg.token && R.SEATS.some((s) => room!.players[s]?.token === msg.token));
+  // A player reclaiming their own seat is never held back; anyone else from
+  // an address that has missed too often waits.
+  if (!tokenMatches && joinFails.blocked(conn.ip, Date.now())) {
+    return sendError(conn, "too_many", "Too many wrong table codes. Wait a few minutes and try again.");
+  }
   if (!room) {
-    if (!msg.create) return sendError(conn, "no_room", "No table with that code is open.");
+    if (!msg.create) return refuseJoin(conn, "no_room", "No table with that code is open.");
     if (rooms.size >= MAX_ROOMS) return sendError(conn, "busy", "The server is full right now. Try again shortly.");
     room = R.createRoom(code, Date.now());
     rooms.set(code, room);
   } else if (msg.create && !tokenMatches) {
-    return sendError(conn, "room_exists", "That table code is already taken.");
+    return refuseJoin(conn, "room_exists", "That table code is already taken.");
   }
 
   const res = R.join(room, { name: msg.name, token: msg.token, resume: msg.resume }, Date.now(), () =>
     crypto.randomBytes(18).toString("base64url"),
   );
-  if (!res.ok) return sendError(conn, res.code, res.reason);
+  if (!res.ok) return refuseJoin(conn, res.code, res.reason);
 
   const seats = sockets.get(code) ?? {};
   sockets.set(code, seats);
@@ -206,19 +247,35 @@ function handle(conn: Conn, raw: string) {
 
 // ---------------------------------------------------------------- HTTP
 
-/** Everything the built client loads: its own files, Google Fonts, and the
- *  game socket. Inline styles are framer-motion's animated style attributes. */
-const CSP = [
-  "default-src 'self'",
-  "script-src 'self'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src https://fonts.gstatic.com",
-  "img-src 'self' data:",
-  "connect-src 'self' ws: wss:",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-].join("; ");
+/**
+ * Everything the built client loads comes from this server: its files, its
+ * font, and the game socket on this same host (named explicitly, since older
+ * Safari does not count ws:/wss: as 'self'). Inline styles are
+ * framer-motion's animated style attributes.
+ */
+const CONNECT_EXTRA = (process.env.CONNECT_SRC ?? "").split(/[\s,]+/).filter(Boolean);
+function csp(host: string | undefined, https: boolean): string {
+  const sockets = host && /^[a-z0-9.:[\]-]+$/i.test(host) ? [`${https ? "wss" : "ws"}://${host}`] : [];
+  return [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "font-src 'self'",
+    "img-src 'self' data:",
+    ["connect-src 'self'", ...sockets, ...CONNECT_EXTRA].join(" "),
+    "worker-src 'self'",
+    "manifest-src 'self'",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+  ].join("; ");
+}
+
+function publicHost(req: http.IncomingMessage): string | undefined {
+  const fwd = req.headers["x-forwarded-host"];
+  return (Array.isArray(fwd) ? fwd[0] : fwd)?.split(",")[0].trim() || req.headers.host;
+}
 
 const STATIC_DIR = path.resolve(process.env.STATIC_DIR ?? "dist");
 const HAS_STATIC = fs.existsSync(path.join(STATIC_DIR, "index.html"));
@@ -232,7 +289,9 @@ const TYPES: Record<string, string> = {
   ".json": "application/json",
   ".webmanifest": "application/manifest+json",
   ".woff2": "font/woff2",
+  ".woff": "font/woff",
   ".txt": "text/plain; charset=utf-8",
+  ".xml": "application/xml",
 };
 
 function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
@@ -251,28 +310,89 @@ function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
   // Unknown paths are client-side routes (/room/ABCDE) — serve the app.
   const target = exists ? file : path.join(STATIC_DIR, "index.html");
   const hashed = exists && rel.startsWith("/assets/");
+  const https = req.headers["x-forwarded-proto"] === "https";
   const headers: http.OutgoingHttpHeaders = {
     "Content-Type": TYPES[path.extname(target)] ?? "application/octet-stream",
     "Cache-Control": hashed ? "public, max-age=31536000, immutable" : "no-cache",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "same-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
   };
   if (target.endsWith(".html")) {
-    headers["Content-Security-Policy"] = CSP;
+    headers["Content-Security-Policy"] = csp(publicHost(req), https);
     headers["X-Frame-Options"] = "DENY";
   }
-  if (req.headers["x-forwarded-proto"] === "https") headers["Strict-Transport-Security"] = "max-age=15552000";
+  if (https) headers["Strict-Transport-Security"] = "max-age=15552000";
   res.writeHead(200, headers);
   if (req.method === "HEAD") return void res.end();
   fs.createReadStream(target).pipe(res);
 }
 
+/**
+ * POST /api/report: a crash in a player's browser, or a note from the
+ * feedback form. Written to the server log as one JSON line, which is where
+ * the host's log viewer (or a log drain) picks it up. Nothing is stored here.
+ */
+const REPORT_MAX = 4 * 1024;
+function onReport(req: http.IncomingMessage, res: http.ServerResponse) {
+  const ip = clientIp(req.headers, req.socket.remoteAddress, TRUST_PROXY);
+  const done = (status: number) => res.writeHead(status, { "Cache-Control": "no-store" }).end();
+  const origin = req.headers.origin;
+  if (!originAllowed(origin, publicHost(req), ALLOWED_ORIGINS)) return done(403);
+  if (!reports.hit(ip, Date.now())) return done(429);
+  let body = "";
+  let size = 0;
+  req.setEncoding("utf8");
+  req.on("data", (chunk: string) => {
+    size += chunk.length;
+    if (size > REPORT_MAX) {
+      done(413);
+      req.destroy();
+      return;
+    }
+    body += chunk;
+  });
+  req.on("end", () => {
+    if (res.headersSent) return;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      return done(400);
+    }
+    const r = parsed as Record<string, unknown>;
+    const kind = r.kind === "feedback" ? "feedback" : r.kind === "error" ? "error" : null;
+    if (!kind) return done(400);
+    // Only plain short strings are kept; the address is not logged.
+    const clip = (v: unknown, n: number) => (typeof v === "string" ? v.slice(0, n) : undefined);
+    console.log(
+      `[crack-the-code] ${kind} ` +
+        JSON.stringify({
+          message: clip(r.message, 1500),
+          stack: clip(r.stack, 2000),
+          page: clip(r.page, 200),
+          version: clip(r.version, 40),
+          lang: clip(r.lang, 8),
+          ua: clip(req.headers["user-agent"], 200),
+        }),
+    );
+    done(204);
+  });
+}
+
 const server = http.createServer((req, res) => {
-  const pathname = (req.url ?? "/").split("?")[0];
+  const url = new URL(req.url ?? "/", "http://x");
+  const pathname = url.pathname;
   if (pathname === "/healthz") {
+    // Counts only for whoever holds the key: they say how busy the game is.
+    const full = HEALTH_KEY && url.searchParams.get("key") === HEALTH_KEY;
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
-    res.end(JSON.stringify({ ok: true, rooms: rooms.size, sockets: wss.clients.size }));
+    res.end(JSON.stringify(full ? { ok: true, rooms: rooms.size, sockets: wss.clients.size } : { ok: true }));
     return;
+  }
+  if (pathname === "/api/report") {
+    if (req.method !== "POST") return void res.writeHead(405, { Allow: "POST" }).end();
+    return onReport(req, res);
   }
   if (HAS_STATIC && (req.method === "GET" || req.method === "HEAD")) return serveStatic(req, res);
   res.writeHead(404, { "Content-Type": "text/plain" }).end("Crack the Code room server");
@@ -304,17 +424,22 @@ const wss = new WebSocketServer({
   maxPayload: 4 * 1024,
   verifyClient: ({ origin, req }: { origin?: string; req: http.IncomingMessage }) => {
     // Behind a proxy the public host arrives in X-Forwarded-Host.
-    const fwd = req.headers["x-forwarded-host"];
-    const host = (Array.isArray(fwd) ? fwd[0] : fwd)?.split(",")[0].trim() || req.headers.host;
-    const ok = originAllowed(origin, host, ALLOWED_ORIGINS);
+    const ok = originAllowed(origin, publicHost(req), ALLOWED_ORIGINS);
     if (!ok) console.warn(`[crack-the-code] refused socket from origin ${origin}`);
     return ok;
   },
 });
 
-wss.on("connection", (socket) => {
+wss.on("connection", (socket, req) => {
+  const ip = clientIp(req.headers, req.socket.remoteAddress, TRUST_PROXY);
+  if (!ipSockets.take(ip)) {
+    socket.close(1008, "too many connections");
+    return;
+  }
   const conn: Conn = {
     socket,
+    ip,
+    fails: 0,
     room: null,
     seat: null,
     alive: true,
@@ -345,6 +470,7 @@ wss.on("connection", (socket) => {
 
   socket.on("close", () => {
     conns.delete(conn);
+    ipSockets.give(ip);
     try {
       onLeaveSocket(conn);
     } catch (err) {
@@ -369,6 +495,8 @@ const heartbeat = setInterval(() => {
 
 const sweep = setInterval(() => {
   const now = Date.now();
+  joinFails.sweep(now);
+  reports.sweep(now);
   for (const [code, room] of rooms) {
     const expired = R.expiredSeats(room, now, SEAT_GRACE_MS);
     if (expired.length) {

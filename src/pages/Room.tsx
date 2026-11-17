@@ -461,6 +461,7 @@ function FatalPanel({ error, onRetry }: { error: RoomError; onRetry: (reopen?: b
     version: { title: "fatal_version_t", body: "fatal_version_b", action: ["fatal_version_a", () => window.location.reload()] },
     busy: { title: "fatal_busy_t", body: "fatal_busy_b", action: ["try_again", () => onRetry()] },
     bad_room: { title: "fatal_bad_room_t", body: "fatal_bad_room_b" },
+    too_many: { title: "fatal_too_many_t", body: "fatal_too_many_b" },
   };
   const c = copy[error.code];
   const action = c ? c.action : (["try_again", () => onRetry()] as [Key, () => void]);

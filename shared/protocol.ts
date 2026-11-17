@@ -115,7 +115,9 @@ export type ErrorCode =
   | "busy"
   | "bad_code"
   | "not_now"
-  | "rate_limited";
+  | "rate_limited"
+  /** too many wrong table codes from one address: wait, then try again */
+  | "too_many";
 
 /** Errors after which reconnecting to the same room cannot help. */
 export const FATAL_ERRORS: readonly ErrorCode[] = [
@@ -126,6 +128,7 @@ export const FATAL_ERRORS: readonly ErrorCode[] = [
   "room_full",
   "replaced",
   "busy",
+  "too_many",
 ];
 
 export type ServerMessage =
